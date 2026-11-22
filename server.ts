@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import express from 'express';
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -42,11 +44,69 @@ function isSafeMediaUrl(url: string): boolean {
 }
 
 // ======================== ADMIN AUTHENTICATION ========================
-const SESSION_SECRET =
-  process.env.ADMIN_SESSION_SECRET?.trim() || crypto.randomBytes(32).toString('hex');
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const AUTH_STATE_FILE = path.join(os.tmpdir(), 'metro-parcel-admin-auth.json');
 
-let claimedAdmin: { email: string; salt: string; hashHex: string } | null = null;
+interface PersistedAuthState {
+  sessionSecret?: string;
+  claimedAdmin?: { email: string; salt: string; hashHex: string };
+}
+
+function readPersistedAuthState(): PersistedAuthState {
+  try {
+    if (!fs.existsSync(AUTH_STATE_FILE)) return {};
+    const raw = fs.readFileSync(AUTH_STATE_FILE, 'utf-8');
+    const parsed = JSON.parse(raw) as PersistedAuthState;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePersistedAuthState(next: PersistedAuthState) {
+  try {
+    fs.writeFileSync(AUTH_STATE_FILE, JSON.stringify(next), { mode: 0o600 });
+  } catch {
+    // Ignore read-only filesystems (e.g. restricted serverless)
+  }
+}
+
+function getConfiguredEnvCredentials(): { email: string; password: string } | null {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) return null;
+  return { email, password };
+}
+
+const persistedInitial = readPersistedAuthState();
+let claimedAdmin: { email: string; salt: string; hashHex: string } | null =
+  persistedInitial.claimedAdmin ?? null;
+
+function resolveInitialEphemeralSecret(): string {
+  if (persistedInitial.sessionSecret) {
+    return persistedInitial.sessionSecret;
+  }
+  const generated = crypto.randomBytes(32).toString('hex');
+  writePersistedAuthState({ ...persistedInitial, sessionSecret: generated });
+  return generated;
+}
+
+const EPHEMERAL_FALLBACK_SECRET = resolveInitialEphemeralSecret();
+
+function getSessionSecret(): string {
+  const explicit = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (explicit) return explicit;
+
+  const envCreds = getConfiguredEnvCredentials();
+  if (envCreds) {
+    return crypto
+      .createHmac('sha256', envCreds.password)
+      .update(`metro-parcel-session:${envCreds.email.trim().toLowerCase()}`)
+      .digest('hex');
+  }
+
+  return EPHEMERAL_FALLBACK_SECRET;
+}
 
 function sha256Buffer(value: string): Buffer {
   return crypto.createHash('sha256').update(value).digest();
@@ -58,13 +118,6 @@ function timingSafeEqualString(a: string, b: string): boolean {
 
 function hashPassword(password: string, salt: string): Buffer {
   return crypto.scryptSync(password, salt, 64);
-}
-
-function getConfiguredEnvCredentials(): { email: string; password: string } | null {
-  const email = process.env.ADMIN_EMAIL?.trim();
-  const password = process.env.ADMIN_PASSWORD;
-  if (!email || !password) return null;
-  return { email, password };
 }
 
 function verifyAdminCredentials(emailInput: string, passwordInput: string): string | null {
@@ -101,22 +154,24 @@ function verifyAdminCredentials(emailInput: string, passwordInput: string): stri
 }
 
 function createAdminToken(email: string): string {
+  const secret = getSessionSecret();
   const payload = Buffer.from(
     JSON.stringify({ email, role: 'admin', exp: Date.now() + TOKEN_TTL_MS }),
     'utf-8'
   ).toString('base64url');
-  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
 
 function verifyAdminToken(token: string): { email: string } | null {
+  const secret = getSessionSecret();
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [payload, sig] = parts;
   if (!payload || !sig) return null;
 
   const expectedSig = crypto
-    .createHmac('sha256', SESSION_SECRET)
+    .createHmac('sha256', secret)
     .update(payload)
     .digest('base64url');
   const sigBuf = Buffer.from(sig);
@@ -144,11 +199,19 @@ function verifyAdminToken(token: string): { email: string } | null {
 }
 
 function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7).trim();
-  if (!token) return null;
-  return verifyAdminToken(token);
+  const customHeader = req.headers['x-admin-token'];
+  const customToken = Array.isArray(customHeader) ? customHeader[0] : customHeader;
+  if (customToken && customToken.trim()) {
+    const verified = verifyAdminToken(customToken.trim());
+    if (verified) return verified;
+  }
+
+  const rawAuth = req.headers.authorization;
+  const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
+  if (!authHeader) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  if (!match || !match[1]) return null;
+  return verifyAdminToken(match[1].trim());
 }
 
 function requireAdminAuth(
@@ -262,6 +325,11 @@ app.post('/api/admin/auth/setup', (req, res) => {
   const salt = crypto.randomBytes(16).toString('hex');
   const hashHex = hashPassword(rawPassword, salt).toString('hex');
   claimedAdmin = { email: cleanEmail, salt, hashHex };
+  writePersistedAuthState({
+    ...readPersistedAuthState(),
+    sessionSecret: EPHEMERAL_FALLBACK_SECRET,
+    claimedAdmin,
+  });
 
   const token = createAdminToken(cleanEmail);
   res.status(201).json({ ok: true, token, email: cleanEmail });
