@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+  --tp-yellow: #FFCC00;
+  --tp-yellow-soft: #FFE68A;
+  --tp-yellow-pale: #FFF6CC;
+  --tp-ink: #1d1d1f;
+  --tp-ink-2: #2b2b2e;
+  --tp-muted: #6b6b70;
+  --tp-bg: #f2f2f2;
+  --tp-line: #e3e3e3;
+  --tp-purple: #C42BF0;
+  --tp-pink: #FF1FBF;
+  --tp-green: #00C853;
+  --tp-orange: #FF5A1F;
+  --tp-blue: #1B6CFF;
+  --tp-lime: #C6F432;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Archivo', system-ui, -apple-system, sans-serif;
+    color: var(--tp-ink);
+    background-color: var(--tp-bg);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.font-display {
+  font-family: 'Archivo Black', 'Archivo', system-ui, sans-serif;
+}
+
+.font-mono-tabular {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes tp-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-tp-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: tp-marquee 30s linear infinite;
+}
+
+@keyframes tp-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+}
+
+.animate-tp-float {
+  animation: tp-float 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tp-marquee,
+  .animate-tp-float {
+    animation: none;
+  }
+}
+
+/* Print optimization for stamped digital receipts */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    border: 1px solid #d4d4d8 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+}

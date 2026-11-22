@@ -1,0 +1,6 @@
+{
+  "name": "TrackPro Logistics",
+  "description": "Real-time GPS parcel tracking, geofencing alerts, historical route playback, performance analytics, and instant quotes with offline PWA support.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
