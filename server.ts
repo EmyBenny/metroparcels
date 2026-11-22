@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -38,6 +39,129 @@ function isSafeMediaUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+// ======================== ADMIN AUTHENTICATION ========================
+const SESSION_SECRET =
+  process.env.ADMIN_SESSION_SECRET?.trim() || crypto.randomBytes(32).toString('hex');
+const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+
+let claimedAdmin: { email: string; salt: string; hashHex: string } | null = null;
+
+function sha256Buffer(value: string): Buffer {
+  return crypto.createHash('sha256').update(value).digest();
+}
+
+function timingSafeEqualString(a: string, b: string): boolean {
+  return crypto.timingSafeEqual(sha256Buffer(a), sha256Buffer(b));
+}
+
+function hashPassword(password: string, salt: string): Buffer {
+  return crypto.scryptSync(password, salt, 64);
+}
+
+function getConfiguredEnvCredentials(): { email: string; password: string } | null {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) return null;
+  return { email, password };
+}
+
+function verifyAdminCredentials(emailInput: string, passwordInput: string): string | null {
+  const normalizedInputEmail = emailInput.trim().toLowerCase();
+  if (!normalizedInputEmail || !passwordInput) return null;
+
+  const envCreds = getConfiguredEnvCredentials();
+  if (envCreds) {
+    const emailMatches = timingSafeEqualString(
+      normalizedInputEmail,
+      envCreds.email.trim().toLowerCase()
+    );
+    const ephemeralSalt = crypto.randomBytes(16).toString('hex');
+    const expectedHash = hashPassword(envCreds.password, ephemeralSalt);
+    const actualHash = hashPassword(passwordInput, ephemeralSalt);
+    const passwordMatches = crypto.timingSafeEqual(expectedHash, actualHash);
+    return emailMatches && passwordMatches ? envCreds.email : null;
+  }
+
+  if (claimedAdmin) {
+    const emailMatches = timingSafeEqualString(
+      normalizedInputEmail,
+      claimedAdmin.email.trim().toLowerCase()
+    );
+    const expectedHash = Buffer.from(claimedAdmin.hashHex, 'hex');
+    const actualHash = hashPassword(passwordInput, claimedAdmin.salt);
+    const passwordMatches =
+      expectedHash.length === actualHash.length &&
+      crypto.timingSafeEqual(expectedHash, actualHash);
+    return emailMatches && passwordMatches ? claimedAdmin.email : null;
+  }
+
+  return null;
+}
+
+function createAdminToken(email: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ email, role: 'admin', exp: Date.now() + TOKEN_TTL_MS }),
+    'utf-8'
+  ).toString('base64url');
+  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyAdminToken(token: string): { email: string } | null {
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [payload, sig] = parts;
+  if (!payload || !sig) return null;
+
+  const expectedSig = crypto
+    .createHmac('sha256', SESSION_SECRET)
+    .update(payload)
+    .digest('base64url');
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return null;
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8')) as {
+      email?: string;
+      role?: string;
+      exp?: number;
+    };
+    if (decoded.role !== 'admin' || !decoded.email || typeof decoded.exp !== 'number') {
+      return null;
+    }
+    if (Date.now() > decoded.exp) {
+      return null;
+    }
+    return { email: decoded.email };
+  } catch {
+    return null;
+  }
+}
+
+function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+  return verifyAdminToken(token);
+}
+
+function requireAdminAuth(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const admin = getAuthenticatedAdmin(req);
+  if (!admin) {
+    res.status(401).json({ ok: false, error: 'Admin authentication required' });
+    return;
+  }
+  next();
 }
 
 // In-memory state store synchronized with clients via REST + SSE
@@ -104,6 +228,80 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'Metro Parcel Service API', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/admin/auth/status', (req, res) => {
+  const envCreds = getConfiguredEnvCredentials();
+  const needsSetup = !envCreds && !claimedAdmin;
+  const admin = getAuthenticatedAdmin(req);
+  res.json({
+    ok: true,
+    needsSetup,
+    authenticated: Boolean(admin),
+    email: admin?.email ?? null,
+  });
+});
+
+app.post('/api/admin/auth/setup', (req, res) => {
+  const envCreds = getConfiguredEnvCredentials();
+  if (envCreds || claimedAdmin) {
+    res.status(409).json({ ok: false, error: 'Admin account is already configured' });
+    return;
+  }
+  const { email, password } = req.body ?? {};
+  const cleanEmail = String(email ?? '').trim().toLowerCase();
+  const rawPassword = String(password ?? '');
+
+  if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+    res.status(400).json({ ok: false, error: 'Valid admin email address is required' });
+    return;
+  }
+  if (rawPassword.length < 8) {
+    res.status(400).json({ ok: false, error: 'Admin password must be at least 8 characters' });
+    return;
+  }
+
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hashHex = hashPassword(rawPassword, salt).toString('hex');
+  claimedAdmin = { email: cleanEmail, salt, hashHex };
+
+  const token = createAdminToken(cleanEmail);
+  res.status(201).json({ ok: true, token, email: cleanEmail });
+});
+
+app.post('/api/admin/auth/login', (req, res) => {
+  const envCreds = getConfiguredEnvCredentials();
+  if (!envCreds && !claimedAdmin) {
+    res.status(409).json({
+      ok: false,
+      needsSetup: true,
+      error: 'Initial admin setup required before signing in',
+    });
+    return;
+  }
+
+  const { email, password } = req.body ?? {};
+  const verifiedEmail = verifyAdminCredentials(String(email ?? ''), String(password ?? ''));
+  if (!verifiedEmail) {
+    res.status(401).json({ ok: false, error: 'Invalid admin email or password' });
+    return;
+  }
+
+  const token = createAdminToken(verifiedEmail);
+  res.json({ ok: true, token, email: verifiedEmail });
+});
+
+app.post('/api/admin/auth/logout', (_req, res) => {
+  res.json({ ok: true });
+});
+
+// Gate all /api/admin/* routes except /api/admin/auth/*
+app.use('/api/admin', (req, res, next) => {
+  if (req.path.startsWith('/auth/')) {
+    next();
+    return;
+  }
+  requireAdminAuth(req, res, next);
+});
+
 app.get('/api/stream/tracking', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -144,7 +342,7 @@ app.get('/api/shipments/:id', (req, res) => {
   res.json({ ok: true, shipment: found });
 });
 
-app.post('/api/shipments/:id/position', (req, res) => {
+app.post('/api/shipments/:id/position', requireAdminAuth, (req, res) => {
   const id = req.params.id.trim().toUpperCase();
   const idx = shipments.findIndex((s) => s.tracking_no.toUpperCase() === id);
   if (idx === -1) {
@@ -246,7 +444,7 @@ app.post('/api/shipments/:id/position', (req, res) => {
   res.json({ ok: true, shipment: updatedShipment, newAlerts: nextAlerts });
 });
 
-app.put('/api/geofences/:trackingNo', (req, res) => {
+app.put('/api/geofences/:trackingNo', requireAdminAuth, (req, res) => {
   const id = req.params.trackingNo.trim().toUpperCase();
   const idx = shipments.findIndex((s) => s.tracking_no.toUpperCase() === id);
   if (idx === -1) {
@@ -450,6 +648,10 @@ app.post('/api/tickets/:id/replies', (req, res) => {
     return;
   }
   const role: SupportReply['senderRole'] = senderRole === 'admin' ? 'admin' : 'visitor';
+  if (role === 'admin' && !getAuthenticatedAdmin(req)) {
+    res.status(401).json({ ok: false, error: 'Admin authentication required for admin replies' });
+    return;
+  }
   const fallbackName = role === 'admin' ? 'Metro Parcel Service Support' : supportTickets[idx].name;
   const cleanName = String(senderName ?? fallbackName).trim().slice(0, 120) || fallbackName;
   const now = new Date().toISOString();
@@ -564,9 +766,10 @@ app.post('/api/sync', (req, res) => {
         (t) => t.id === p.ticketId || t.ticketCode === p.ticketCode
       );
       if (tIdx !== -1 && p.text) {
+        const isAdminSync = p.senderRole === 'admin' && Boolean(getAuthenticatedAdmin(req));
         const reply: SupportReply = {
           id: `rep-sync-${Date.now()}`,
-          senderRole: p.senderRole === 'admin' ? 'admin' : 'visitor',
+          senderRole: isAdminSync ? 'admin' : 'visitor',
           senderName: String(p.senderName || supportTickets[tIdx].name),
           text: String(p.text),
           createdAt: new Date().toISOString(),
@@ -1056,4 +1259,9 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
+export { app };

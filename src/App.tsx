@@ -47,8 +47,17 @@ import { HelpPage } from './pages/HelpPage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminPage } from './pages/AdminPage';
 
+function isAdminPortalPath(pathname: string): boolean {
+  const clean = pathname.replace(/\/+$/, '');
+  return clean === '/adminportal';
+}
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageRoute>('home');
+  const [currentPage, setCurrentPage] = useState<PageRoute>(() =>
+    isAdminPortalPath(window.location.pathname) ? 'admin' : 'home'
+  );
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [shipments, setShipments] = useState<Shipment[]>(() => loadCachedShipments());
   const [selectedTrackingNo, setSelectedTrackingNo] = useState<string>('');
   const [alerts, setAlerts] = useState<PushAlert[]>(() => loadCachedAlerts());
@@ -72,6 +81,16 @@ export default function App() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() =>
     getNotificationPermission()
   );
+
+  const handleAdminAuthenticated = useCallback((token: string, email: string) => {
+    setAdminToken(token);
+    setAdminEmail(email);
+  }, []);
+
+  const handleAdminLogout = useCallback(() => {
+    setAdminToken(null);
+    setAdminEmail(null);
+  }, []);
 
   // Listen for Google Maps Platform quota events (Tier 1 & 2 defense)
   useEffect(() => {
@@ -97,7 +116,25 @@ export default function App() {
     saveCachedTickets(supportTickets);
   }, [supportTickets]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPage((prev) => {
+        if (isAdminPortalPath(window.location.pathname)) {
+          return 'admin';
+        }
+        return prev === 'admin' ? 'home' : prev;
+      });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const navigate = useCallback((page: PageRoute) => {
+    const targetPath = page === 'admin' ? '/adminportal' : '/';
+    const onAdminPath = isAdminPortalPath(window.location.pathname);
+    if ((page === 'admin' && !onAdminPath) || (page !== 'admin' && onAdminPath)) {
+      window.history.pushState({}, '', targetPath);
+    }
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -136,7 +173,7 @@ export default function App() {
         const unique = newAlerts.filter((a) => !existingIds.has(a.id));
         return [...unique, ...prev].slice(0, 50);
       });
-      const isAdminView = currentPage === 'admin';
+      const isAdminView = currentPage === 'admin' && Boolean(adminToken);
       const trackedMatch = selectedTrackingNo.trim().toUpperCase();
       const visibleMatches = isAdminView
         ? newAlerts
@@ -151,7 +188,7 @@ export default function App() {
         setActiveToast((curr) => (curr?.id === latest.id ? null : curr));
       }, 6000);
     },
-    [currentPage, selectedTrackingNo]
+    [adminToken, currentPage, selectedTrackingNo]
   );
 
   // Initial sync + real-time SSE stream when online
@@ -302,7 +339,7 @@ export default function App() {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if (currentPage === 'admin' || owned) {
+        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
           upsertTicket(parsed.ticket);
         }
       } catch {
@@ -318,7 +355,7 @@ export default function App() {
         };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if (currentPage === 'admin' || owned) {
+        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
           upsertTicket(parsed.ticket);
         }
         if (parsed.reply?.senderRole === 'admin' && owned && currentPage !== 'admin') {
@@ -345,7 +382,7 @@ export default function App() {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if (currentPage === 'admin' || owned) {
+        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
           upsertTicket(parsed.ticket);
         }
       } catch {
@@ -364,7 +401,7 @@ export default function App() {
         if (Array.isArray(parsed.shipments)) setShipments(parsed.shipments);
         if (Array.isArray(parsed.alerts)) setAlerts(parsed.alerts);
         if (parsed.settings) setSiteSettings(parsed.settings);
-        if (Array.isArray(parsed.tickets) && currentPage === 'admin') {
+        if (Array.isArray(parsed.tickets) && currentPage === 'admin' && Boolean(adminToken)) {
           setSupportTickets(parsed.tickets);
         }
       } catch {
@@ -376,7 +413,7 @@ export default function App() {
       cancelled = true;
       sse.close();
     };
-  }, [isOnline, currentPage, triggerAlerts, upsertTicket]);
+  }, [adminToken, isOnline, currentPage, triggerAlerts, upsertTicket]);
 
   // Flush queued offline actions automatically when back online
   const syncOfflineQueue = useCallback(async () => {
@@ -386,7 +423,10 @@ export default function App() {
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+        },
         body: JSON.stringify({ actions: queue }),
       });
       if (res.ok) {
@@ -398,7 +438,7 @@ export default function App() {
     } finally {
       setSyncing(false);
     }
-  }, [isOnline, syncing]);
+  }, [adminToken, isOnline, syncing]);
 
   useEffect(() => {
     if (isOnline && offlineQueue.length > 0) {
@@ -422,9 +462,16 @@ export default function App() {
         try {
           const res = await fetch(`/api/shipments/${encodeURIComponent(trackingNo)}/position`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+            },
             body: JSON.stringify({ ...coords, deviationThresholdMeters }),
           });
+          if (res.status === 401) {
+            handleAdminLogout();
+            return;
+          }
           if (res.ok) {
             const data = await res.json();
             if (data.shipment) {
@@ -521,30 +568,39 @@ export default function App() {
       if (newAlerts.length > 0) triggerAlerts(newAlerts);
       setOfflineQueue(enqueueOfflineAction('gps_update', { trackingNo, coords }));
     },
-    [isOnline, triggerAlerts]
+    [adminToken, handleAdminLogout, isOnline, triggerAlerts]
   );
 
   const handleUpdateGeofences = useCallback(
     async (trackingNo: string, geofences: GeofenceZone[]) => {
-      setShipments((prev) =>
-        prev.map((s) => (s.tracking_no === trackingNo ? { ...s, geofences } : s))
-      );
-
       if (isOnline) {
         try {
-          await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
+          const res = await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+            },
             body: JSON.stringify({ geofences }),
           });
+          if (res.status === 401) {
+            handleAdminLogout();
+            return;
+          }
+          setShipments((prev) =>
+            prev.map((s) => (s.tracking_no === trackingNo ? { ...s, geofences } : s))
+          );
           return;
         } catch {
           // Queue offline
         }
       }
+      setShipments((prev) =>
+        prev.map((s) => (s.tracking_no === trackingNo ? { ...s, geofences } : s))
+      );
       setOfflineQueue(enqueueOfflineAction('geofence_update', { trackingNo, geofences }));
     },
-    [isOnline]
+    [adminToken, handleAdminLogout, isOnline]
   );
 
   const handleSubmitTicket = useCallback(
@@ -619,9 +675,18 @@ export default function App() {
         try {
           const res = await fetch(`/api/tickets/${encodeURIComponent(ticketIdOrCode)}/replies`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(payload.senderRole === 'admin' && adminToken
+                ? { Authorization: `Bearer ${adminToken}` }
+                : {}),
+            },
             body: JSON.stringify(payload),
           });
+          if (res.status === 401 && payload.senderRole === 'admin') {
+            handleAdminLogout();
+            return { ok: false };
+          }
           if (res.ok) {
             const data = await res.json();
             if (data.ticket) {
@@ -668,7 +733,7 @@ export default function App() {
       );
       return { ok: true };
     },
-    [isOnline, upsertTicket]
+    [adminToken, handleAdminLogout, isOnline, upsertTicket]
   );
 
   const handleLookupTicketByCode = useCallback(
@@ -706,18 +771,20 @@ export default function App() {
       ticketId: string,
       status: SupportTicket['status']
     ): Promise<{ ok: boolean; ticket?: SupportTicket }> => {
-      setSupportTickets((prev) =>
-        prev.map((t) =>
-          t.id === ticketId ? { ...t, status, updatedAt: new Date().toISOString() } : t
-        )
-      );
       if (isOnline) {
         try {
           const res = await fetch(`/api/admin/tickets/${encodeURIComponent(ticketId)}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+            },
             body: JSON.stringify({ status }),
           });
+          if (res.status === 401) {
+            handleAdminLogout();
+            return { ok: false };
+          }
           if (res.ok) {
             const data = await res.json();
             if (data.ticket) {
@@ -730,9 +797,14 @@ export default function App() {
           // keep local status
         }
       }
+      setSupportTickets((prev) =>
+        prev.map((t) =>
+          t.id === ticketId ? { ...t, status, updatedAt: new Date().toISOString() } : t
+        )
+      );
       return { ok: true };
     },
-    [isOnline, upsertTicket]
+    [adminToken, handleAdminLogout, isOnline, upsertTicket]
   );
 
   const handleUpdateSiteSettings = useCallback(
@@ -741,9 +813,16 @@ export default function App() {
         try {
           const res = await fetch('/api/admin/settings', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+            },
             body: JSON.stringify(nextSettings),
           });
+          if (res.status === 401) {
+            handleAdminLogout();
+            return { ok: false, error: 'Admin session expired. Please sign in again.' };
+          }
           const data = await res.json();
           if (res.ok && data.settings) {
             setSiteSettings(data.settings as SiteSettings);
@@ -757,7 +836,7 @@ export default function App() {
       setSiteSettings(nextSettings);
       return { ok: true };
     },
-    [isOnline]
+    [adminToken, handleAdminLogout, isOnline]
   );
 
   const handleRequestNotifications = async () => {
@@ -776,7 +855,8 @@ export default function App() {
     return supportTickets.filter((t) => codeSet.has(t.ticketCode.toUpperCase()));
   }, [supportTickets, myTicketCodes]);
 
-  const isAdminView = currentPage === 'admin';
+  const isAdminRoute = currentPage === 'admin';
+  const isAdminView = isAdminRoute && Boolean(adminToken);
   const normalizedTracked = selectedTrackingNo.trim().toUpperCase();
   const unreadCount = (
     isAdminView
@@ -841,14 +921,16 @@ export default function App() {
         </div>
       )}
 
-      <Navbar
-        currentPage={currentPage}
-        onNavigate={navigate}
-        unreadAlertsCount={unreadCount}
-        onOpenAlerts={() => setAlertsDrawerOpen(true)}
-        isOnline={isOnline}
-        offlineQueueCount={offlineQueue.length}
-      />
+      {!isAdminRoute && (
+        <Navbar
+          currentPage={currentPage}
+          onNavigate={navigate}
+          unreadAlertsCount={unreadCount}
+          onOpenAlerts={() => setAlertsDrawerOpen(true)}
+          isOnline={isOnline}
+          offlineQueueCount={offlineQueue.length}
+        />
+      )}
 
       <main className="flex-1">
         {currentPage === 'home' && (
@@ -911,6 +993,10 @@ export default function App() {
         )}
         {currentPage === 'admin' && (
           <AdminPage
+            adminToken={adminToken}
+            adminEmail={adminEmail}
+            onAdminAuthenticated={handleAdminAuthenticated}
+            onAdminLogout={handleAdminLogout}
             shipments={shipments}
             alerts={alerts}
             selectedTrackingNo={selectedTrackingNo}
@@ -940,7 +1026,7 @@ export default function App() {
         )}
       </main>
 
-      <Footer contactSettings={siteSettings.contact} onNavigate={navigate} />
+      {!isAdminRoute && <Footer contactSettings={siteSettings.contact} onNavigate={navigate} />}
 
       {/* Real-Time Support Reply Notification Toast for Visitors */}
       {supportToast && (

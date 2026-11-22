@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertCircle,
+  ArrowLeft,
   ArrowUpRight,
   BellRing,
   Building2,
@@ -7,12 +9,16 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  Eye,
+  EyeOff,
   FileSpreadsheet,
   Globe,
   ImagePlus,
   Inbox,
   LayoutDashboard,
   LineChart,
+  Lock,
+  LogOut,
   Mail,
   MapPin,
   MessageSquare,
@@ -65,6 +71,10 @@ type AdminTab =
   | 'system';
 
 interface AdminPageProps {
+  adminToken: string | null;
+  adminEmail: string | null;
+  onAdminAuthenticated: (token: string, email: string) => void;
+  onAdminLogout: () => void;
   shipments: Shipment[];
   alerts: PushAlert[];
   selectedTrackingNo: string;
@@ -94,7 +104,9 @@ interface AdminPageProps {
   onAdminAlertsChange: (nextAlerts: PushAlert[]) => void;
   onTriggerAlert: (alert: PushAlert) => void;
   siteSettings: SiteSettings;
-  onUpdateSiteSettings: (nextSettings: SiteSettings) => Promise<{ ok: boolean; queuedOffline?: boolean }>;
+  onUpdateSiteSettings: (
+    nextSettings: SiteSettings
+  ) => Promise<{ ok: boolean; queuedOffline?: boolean; error?: string }>;
   supportTickets: SupportTicket[];
   onTicketsSync: (nextTickets: SupportTicket[]) => void;
   onReplyTicket: (
@@ -131,6 +143,10 @@ function parseCurrency(val: string): number {
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({
+  adminToken,
+  adminEmail,
+  onAdminAuthenticated,
+  onAdminLogout,
   shipments,
   alerts,
   selectedTrackingNo,
@@ -157,6 +173,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onReplyTicket,
   onUpdateTicketStatus,
 }) => {
+  const [authStatusLoading, setAuthStatusLoading] = useState(!adminToken);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -308,6 +332,98 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     'TP26CS880101,London UK,Bristol UK,Atelier Soho,Express,1.8,19.99\nTP26CS880102,Manchester UK,Leeds UK,North Hub Store,Standard,4.4,24.50'
   );
 
+  const getAdminHeaders = (withJson = false): Record<string, string> => ({
+    ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  });
+
+  const handleSessionExpired = () => {
+    setAuthError('Your admin session expired. Please sign in again.');
+    onAdminLogout();
+  };
+
+  useEffect(() => {
+    if (adminToken || !isOnline) {
+      setAuthStatusLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setAuthStatusLoading(true);
+    fetch('/api/admin/auth/status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.ok) {
+          setNeedsSetup(Boolean(data.needsSetup));
+        }
+      })
+      .catch(() => {
+        // Keep login form visible
+      })
+      .finally(() => {
+        if (!cancelled) setAuthStatusLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminToken, isOnline]);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOnline) {
+      setAuthError('You are currently offline. Reconnect to sign in to the Admin Portal.');
+      return;
+    }
+    setAuthError(null);
+    setAuthSubmitting(true);
+    try {
+      const endpoint = needsSetup ? '/api/admin/auth/setup' : '/api/admin/auth/login';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginEmail.trim(),
+          password: loginPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.needsSetup) {
+        setNeedsSetup(true);
+        setAuthError(data.error || 'Initial admin setup required before signing in.');
+        return;
+      }
+      if (res.status === 409 && needsSetup) {
+        setNeedsSetup(false);
+        setAuthError('Admin account is already configured. Please sign in.');
+        return;
+      }
+      if (!res.ok || !data.ok || !data.token) {
+        setAuthError(data.error || 'Invalid email or password.');
+        return;
+      }
+      setLoginPassword('');
+      onAdminAuthenticated(data.token, data.email || loginEmail.trim());
+    } catch {
+      setAuthError('Unable to reach the authentication server. Please try again.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (isOnline && adminToken) {
+      try {
+        await fetch('/api/admin/auth/logout', {
+          method: 'POST',
+          headers: getAdminHeaders(),
+        });
+      } catch {
+        // Ignore network errors during logout
+      }
+    }
+    setAuthError(null);
+    onAdminLogout();
+  };
+
   const showToast = (msg: string) => {
     setBannerFeedback(msg);
     setTimeout(() => {
@@ -316,9 +432,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   const fetchAdminOverview = async () => {
-    if (!isOnline) return;
+    if (!isOnline || !adminToken) return;
     try {
-      const res = await fetch('/api/admin/overview');
+      const res = await fetch('/api/admin/overview', {
+        headers: getAdminHeaders(),
+      });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.contactMessages)) setContactMessages(data.contactMessages);
@@ -331,8 +453,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   useEffect(() => {
-    fetchAdminOverview();
-  }, [isOnline]);
+    if (adminToken) {
+      fetchAdminOverview();
+    }
+  }, [isOnline, adminToken]);
 
   useEffect(() => {
     setSettingsDraft(siteSettings);
@@ -469,13 +593,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       proofImage: editDraft.parcelImages[0] || '',
     };
 
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify(payload),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           onAdminShipmentsChange(
@@ -554,13 +682,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       proofImage: newForm.parcelImages[0] || undefined,
     };
 
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch('/api/admin/shipments', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify(payload),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         const data = await res.json();
         if (res.ok && data.shipment) {
           onAdminShipmentsChange([data.shipment, ...shipments]);
@@ -672,9 +804,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       showToast('Keep at least one active shipment in the fleet.');
       return;
     }
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
-        await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, { method: 'DELETE' });
+        const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
+          method: 'DELETE',
+          headers: getAdminHeaders(),
+        });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
       } catch {
         // Proceed with local removal
       }
@@ -691,13 +830,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     trackingNo: string,
     paymentState: Shipment['payment']['state']
   ) => {
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify({ paymentState }),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           onAdminShipmentsChange(
@@ -731,13 +874,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleBroadcastAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastForm.title.trim() || !broadcastForm.message.trim()) return;
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch('/api/admin/alerts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify(broadcastForm),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           if (data.alert) onTriggerAlert(data.alert);
@@ -765,13 +912,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleToggleContactStatus = async (msg: ContactMessage) => {
     const nextStatus = msg.status === 'resolved' ? 'open' : 'resolved';
     const note = noteDrafts[msg.id] ?? msg.adminNote ?? '';
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify({ status: nextStatus, adminNote: note }),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           setContactMessages((prev) => prev.map((m) => (m.id === msg.id ? data.entry : m)));
@@ -873,17 +1024,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const code =
       newReturnForm.code.trim().toUpperCase() ||
       `RET-UK-${Math.floor(1000 + Math.random() * 8999)}`;
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
         const res = await fetch('/api/admin/returns', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify({
             code,
             retailer: newReturnForm.retailer,
             dropPoint: newReturnForm.dropPoint,
           }),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           setReturnRequests((prev) => [data.entry, ...prev]);
@@ -912,13 +1067,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleCycleReturnStatus = async (ret: ReturnRequest) => {
     const order: Array<ReturnRequest['status']> = ['Issued', 'Scanned', 'In Transit', 'Refunded'];
     const next = order[(order.indexOf(ret.status) + 1) % order.length];
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
-        await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
+        const res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify({ status: next }),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
       } catch {
         // Local update
       }
@@ -942,7 +1101,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/shipments', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAdminHeaders(true),
           body: JSON.stringify({
             trackingNo,
             originCity,
@@ -953,6 +1112,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             totalFee: Number(totalFee) || 19.99,
           }),
         });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           nextList.unshift(data.shipment);
@@ -967,9 +1130,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   const handleResetDemo = async () => {
-    if (isOnline) {
+    if (isOnline && adminToken) {
       try {
-        const res = await fetch('/api/admin/reset', { method: 'POST' });
+        const res = await fetch('/api/admin/reset', {
+          method: 'POST',
+          headers: getAdminHeaders(),
+        });
+        if (res.status === 401) {
+          handleSessionExpired();
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           onAdminShipmentsChange(data.shipments);
@@ -996,7 +1166,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `golden_courier_fleet_admin_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `metro_parcel_fleet_admin_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1052,6 +1222,147 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'system', label: 'Business & Offline Sync', icon: Building2, badge: offlineQueue.length },
   ];
 
+  if (!adminToken) {
+    return (
+      <div className="min-h-screen bg-[#f2f2f2] flex flex-col">
+        {/* Isolated Admin Portal Top Bar */}
+        <header className="bg-[#FFCC00] border-b border-black/10 px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="inline-flex items-center gap-2.5 text-[#1d1d1f] font-extrabold text-lg sm:text-xl tracking-tight">
+            <span className="w-8 h-8 rounded-lg bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center font-display text-base">
+              M
+            </span>
+            <span>Metro Parcel Service</span>
+            <span className="px-2 py-0.5 bg-[#1d1d1f] text-[#FFCC00] text-[10px] font-extrabold uppercase tracking-wider">
+              Admin Portal
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('home')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-black/10 hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[#1d1d1f] text-xs font-extrabold transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Public Site</span>
+          </button>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-md bg-white border-2 border-[#1d1d1f] shadow-[8px_8px_0_#FFCC00] p-6 sm:p-8">
+            <div className="flex items-center gap-3 pb-5 border-b border-neutral-200">
+              <div className="w-11 h-11 bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b6b70]">
+                  /adminportal · Restricted Access
+                </p>
+                <h1 className="font-display text-xl sm:text-2xl text-[#1d1d1f]">
+                  {needsSetup ? 'Initial Admin Setup' : 'Admin Operations Sign In'}
+                </h1>
+              </div>
+            </div>
+
+            {authStatusLoading ? (
+              <div className="py-10 text-center text-xs font-bold text-[#6b6b70]">
+                Checking Admin Portal security status…
+              </div>
+            ) : (
+              <form onSubmit={handleAuthSubmit} className="mt-5 space-y-4">
+                {needsSetup && (
+                  <div className="bg-amber-50 border border-amber-300 text-amber-950 p-3 text-xs leading-relaxed">
+                    <p className="font-extrabold">First-run setup required</p>
+                    <p className="mt-1">
+                      Claim your Admin Portal email and password (minimum 8 characters) to initialize operations access. For persistent deployments, also configure <code className="font-mono font-bold">ADMIN_EMAIL</code> and <code className="font-mono font-bold">ADMIN_PASSWORD</code> in environment variables.
+                    </p>
+                  </div>
+                )}
+
+                {authError && (
+                  <div
+                    role="alert"
+                    className="bg-red-50 border border-red-300 text-red-900 p-3 text-xs font-bold flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="admin-login-email"
+                    className="block text-xs font-extrabold uppercase tracking-wider text-[#1d1d1f] mb-1.5"
+                  >
+                    Admin Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#6b6b70] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      id="admin-login-email"
+                      type="email"
+                      required
+                      autoComplete="username"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="Enter admin email"
+                      className="w-full pl-9 pr-3 py-2.5 border border-neutral-300 focus:border-[#1d1d1f] focus:outline-none text-sm font-medium bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="admin-login-password"
+                    className="block text-xs font-extrabold uppercase tracking-wider text-[#1d1d1f] mb-1.5"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#6b6b70] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      id="admin-login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={needsSetup ? 8 : 1}
+                      autoComplete={needsSetup ? 'new-password' : 'current-password'}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder={needsSetup ? 'Create password (min 8 chars)' : 'Enter password'}
+                      className="w-full pl-9 pr-10 py-2.5 border border-neutral-300 focus:border-[#1d1d1f] focus:outline-none text-sm font-medium bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#6b6b70] hover:text-[#1d1d1f] cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authSubmitting || !isOnline}
+                  className="w-full py-3 bg-[#1d1d1f] text-[#FFCC00] hover:bg-black text-sm font-extrabold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>
+                    {authSubmitting
+                      ? 'Authenticating…'
+                      : needsSetup
+                        ? 'Claim & Enter Admin Portal'
+                        : 'Sign In to Admin Portal'}
+                  </span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 pb-24 lg:pb-12">
       {/* Top Breadcrumb & Primary Action Contract */}
@@ -1074,6 +1385,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             type="button"
+            onClick={() => onNavigate('home')}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-[#f2f2f2] text-[#1d1d1f] border border-neutral-300 text-xs font-bold hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Public Site</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setCreateOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
@@ -1088,6 +1408,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           >
             <Download className="w-4 h-4" />
             <span>Export Fleet CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-white text-red-700 border border-red-300 text-xs font-extrabold hover:bg-red-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
@@ -1110,13 +1439,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       {/* Workspace Grid: Left Sidebar + Main Viewport */}
       <div className="grid lg:grid-cols-12 gap-6 items-start">
         {/* Left Navigation Sidebar */}
-        <aside className="lg:col-span-3 bg-white border border-neutral-200 p-3 space-y-1 lg:sticky lg:top-20">
-          <div className="px-3 py-2.5 mb-2 bg-[#1d1d1f] text-white flex items-center justify-between">
+        <aside className="lg:col-span-3 bg-white border border-neutral-200 p-3 space-y-1 lg:sticky lg:top-6">
+          <div className="px-3 py-2.5 mb-2 bg-[#1d1d1f] text-white flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#FFCC00]">
                 Signed in as Admin
               </p>
-              <p className="text-xs font-bold truncate">Ops Lead · uzorbenny51@gmail.com</p>
+              <p className="text-xs font-bold truncate">Ops Lead · {adminEmail || 'Authenticated'}</p>
             </div>
             <ShieldCheck className="w-5 h-5 text-[#FFCC00] shrink-0" />
           </div>

@@ -6,7 +6,6 @@ import {
   Home,
   Menu,
   ScanLine,
-  ShieldCheck,
   Wifi,
   WifiOff,
   X,
@@ -101,20 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => navTo('admin')}
-              aria-label="Open Admin Portal"
-              className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-extrabold border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                currentPage === 'admin'
-                  ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
-                  : 'bg-black/8 hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[#1d1d1f] border-black/15'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin</span>
-            </button>
-
             <div className="hidden sm:block">
               <PWAInstallButton variant="compact" />
             </div>
@@ -165,7 +150,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ['help', 'Help'],
                 ['contact', 'Contact'],
                 ['analytics', 'Route Playback & Analytics'],
-                ['admin', 'Admin Operations Portal'],
               ] as Array<[PageRoute, string]>
             ).map(([route, label]) => (
               <button

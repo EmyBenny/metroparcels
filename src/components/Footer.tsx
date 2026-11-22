@@ -76,11 +76,6 @@ export const Footer: React.FC<FooterProps> = ({ contactSettings, onNavigate }) =
                   Help centre
                 </button>
               </li>
-              <li>
-                <button type="button" onClick={() => onNavigate('admin')} className="hover:text-[#FFCC00] cursor-pointer">
-                  Admin portal
-                </button>
-              </li>
             </ul>
           </div>
 
