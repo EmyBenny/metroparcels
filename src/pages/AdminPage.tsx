@@ -6,8 +6,10 @@ import {
   BellRing,
   Building2,
   Camera,
+  Check,
   CheckCircle2,
   Clock,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -245,8 +247,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       reader.readAsDataURL(file);
     });
 
-  // Create Shipment Modal state
+  // Create Shipment Modal & Last Dispatched Card state
   const [createOpen, setCreateOpen] = useState(false);
+  const [lastDispatchedShipment, setLastDispatchedShipment] = useState<Shipment | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [previewReceiptShipment, setPreviewReceiptShipment] = useState<Shipment | null>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [editImageUrlInput, setEditImageUrlInput] = useState('');
@@ -259,9 +263,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     destLat: '55.9533',
     destLng: '-3.1883',
     senderName: 'Metro Parcel Service Dispatch',
+    senderAddress: '45 King William St, London EC4N 7DZ',
     senderEmail: 'dispatch@metroparcel.demo',
     senderPhone: '+44 20 7946 0180',
     receiverName: 'Claire Thornton',
+    receiverAddress: '18 Princes Street, Edinburgh EH2 2AN',
     receiverEmail: 'claire.thornton@example.com',
     receiverPhone: '+44 7700 900412',
     courierName: 'Richard Dheo',
@@ -270,6 +276,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     service: 'Express' as Shipment['service'],
     packageDesc: 'Electronics & calibration kit',
     weightKg: '3.2',
+    dimensionsCm: '35x25x18 cm',
     totalFee: '34.50',
     eta: 'Tomorrow, 15:00',
     parcelImages: [] as string[],
@@ -280,12 +287,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [editDraft, setEditDraft] = useState({
     status: 'In Transit',
     progress: 60,
+    service: 'Express' as Shipment['service'],
+    originCity: '',
+    destCity: '',
     currentLocation: '',
     eta: '',
+    senderName: '',
+    senderAddress: '',
     senderEmail: '',
     senderPhone: '',
+    receiverName: '',
+    receiverAddress: '',
     receiverEmail: '',
     receiverPhone: '',
+    packageDesc: '',
+    weightKg: '2.5',
+    dimensionsCm: '35x25x18 cm',
+    totalFee: '29.99',
     courierName: '',
     courierPhone: '',
     courierVehicle: '',
@@ -332,12 +350,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     'TP26CS880101,London UK,Bristol UK,Atelier Soho,Express,1.8,19.99\nTP26CS880102,Manchester UK,Leeds UK,North Hub Store,Standard,4.4,24.50'
   );
 
+  const adminTokenRef = useRef<string | null>(adminToken);
+  adminTokenRef.current = adminToken;
+
   const getAdminHeaders = (withJson = false): Record<string, string> => ({
     ...(withJson ? { 'Content-Type': 'application/json' } : {}),
-    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    ...(adminToken
+      ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+      : {}),
   });
 
-  const handleSessionExpired = () => {
+  const handleSessionExpired = (failedToken?: string | null) => {
+    if (failedToken && adminTokenRef.current && adminTokenRef.current !== failedToken) {
+      return;
+    }
     setAuthError('Your admin session expired. Please sign in again.');
     onAdminLogout();
   };
@@ -431,14 +457,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }, 4500);
   };
 
+  const copyTrackingCode = (code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    showToast(`Copied tracking code ${code}`);
+    setTimeout(() => {
+      setCopiedCode((curr) => (curr === code ? null : curr));
+    }, 2000);
+  };
+
   const fetchAdminOverview = async () => {
-    if (!isOnline || !adminToken) return;
+    const reqToken = adminToken;
+    if (!isOnline || !reqToken) return;
     try {
       const res = await fetch('/api/admin/overview', {
         headers: getAdminHeaders(),
       });
       if (res.status === 401) {
-        handleSessionExpired();
+        handleSessionExpired(reqToken);
         return;
       }
       if (res.ok) {
@@ -514,17 +550,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         ...(s.proofImage ? [s.proofImage] : []),
       ].filter(Boolean))
     );
+    const numericFee = parseCurrency(s.payment.total);
     setEditingTrackingNo(s.tracking_no);
     setEditImageUrlInput('');
     setEditDraft({
       status: s.status,
       progress: s.progress,
+      service: s.service,
+      originCity: s.origin.city,
+      destCity: s.dest.city,
       currentLocation: s.current.location,
       eta: s.eta,
+      senderName: s.sender.name,
+      senderAddress: s.sender.address,
       senderEmail: s.sender.email || '',
       senderPhone: s.sender.phone || '',
+      receiverName: s.receiver.name,
+      receiverAddress: s.receiver.address,
       receiverEmail: s.receiver.email || '',
       receiverPhone: s.receiver.phone || '',
+      packageDesc: s.package,
+      weightKg: String(s.weight),
+      dimensionsCm: s.dimensionsCm || '35x25x18 cm',
+      totalFee: numericFee > 0 ? numericFee.toFixed(2) : '29.99',
       courierName: s.courier.name,
       courierPhone: s.courier.phone,
       courierVehicle: s.courier.vehicle,
@@ -575,15 +623,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTrackingNo) return;
+    const reqToken = adminToken;
+    const parsedFee = Number(editDraft.totalFee);
+    const parsedWeight = Number(editDraft.weightKg);
     const payload = {
       status: editDraft.status,
       progress: Number(editDraft.progress),
+      service: editDraft.service,
+      originCity: editDraft.originCity.trim(),
+      destCity: editDraft.destCity.trim(),
       currentLocation: editDraft.currentLocation,
       eta: editDraft.eta,
+      senderName: editDraft.senderName.trim(),
+      senderAddress: editDraft.senderAddress.trim(),
       senderEmail: editDraft.senderEmail.trim(),
       senderPhone: editDraft.senderPhone.trim(),
+      receiverName: editDraft.receiverName.trim(),
+      receiverAddress: editDraft.receiverAddress.trim(),
       receiverEmail: editDraft.receiverEmail.trim(),
       receiverPhone: editDraft.receiverPhone.trim(),
+      package: editDraft.packageDesc.trim(),
+      weight: Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight : undefined,
+      dimensionsCm: editDraft.dimensionsCm.trim(),
+      totalFee: Number.isFinite(parsedFee) && parsedFee > 0 ? parsedFee : undefined,
       courierName: editDraft.courierName,
       courierPhone: editDraft.courierPhone,
       courierVehicle: editDraft.courierVehicle,
@@ -593,7 +655,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       proofImage: editDraft.parcelImages[0] || '',
     };
 
-    if (isOnline && adminToken) {
+    if (isOnline && reqToken) {
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
           method: 'PATCH',
@@ -601,7 +663,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(payload),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -609,6 +671,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           onAdminShipmentsChange(
             shipments.map((s) => (s.tracking_no === editingTrackingNo ? data.shipment : s))
           );
+          if (lastDispatchedShipment?.tracking_no === editingTrackingNo) {
+            setLastDispatchedShipment(data.shipment);
+          }
           setEditingTrackingNo(null);
           showToast(`Updated ${editingTrackingNo} (${editDraft.status})`);
           return;
@@ -618,44 +683,100 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       }
     }
 
+    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const shortTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    let updatedLocal: Shipment | null = null;
     onAdminShipmentsChange(
-      shipments.map((s) =>
-        s.tracking_no === editingTrackingNo
-          ? {
-              ...s,
-              status: editDraft.status,
-              progress: Number(editDraft.progress),
-              eta: editDraft.eta,
-              current: { ...s.current, location: editDraft.currentLocation },
-              sender: {
-                ...s.sender,
-                email: editDraft.senderEmail.trim() || undefined,
-                phone: editDraft.senderPhone.trim() || undefined,
-              },
-              receiver: {
-                ...s.receiver,
-                email: editDraft.receiverEmail.trim() || undefined,
-                phone: editDraft.receiverPhone.trim() || undefined,
-              },
-              courier: {
-                ...s.courier,
-                name: editDraft.courierName,
-                phone: editDraft.courierPhone,
-                vehicle: editDraft.courierVehicle,
-              },
-              proofImage: editDraft.parcelImages[0] || undefined,
-              parcelImages: editDraft.parcelImages.length > 0 ? editDraft.parcelImages : undefined,
-              payment: { ...s.payment, state: editDraft.paymentState },
-            }
-          : s
-      )
+      shipments.map((s) => {
+        if (s.tracking_no !== editingTrackingNo) return s;
+        const nextFee =
+          Number.isFinite(parsedFee) && parsedFee > 0
+            ? parsedFee
+            : parseCurrency(s.payment.total);
+        const nextPaymentState = editDraft.paymentState;
+        const nextOrigin = editDraft.originCity.trim() || s.origin.city;
+        const nextDest = editDraft.destCity.trim() || s.dest.city;
+        const nextEvents =
+          editDraft.scanNote.trim() || editDraft.status !== s.status
+            ? [
+                ...s.events,
+                {
+                  status: editDraft.status,
+                  location: editDraft.currentLocation || s.current.location,
+                  lat: s.current.lat,
+                  lng: s.current.lng,
+                  note: editDraft.scanNote.trim() || `Admin updated status to ${editDraft.status}`,
+                  event_time: nowStr,
+                  time_h: `Today, ${shortTime}`,
+                },
+              ]
+            : s.events;
+
+        updatedLocal = {
+          ...s,
+          status: editDraft.status,
+          progress: Number(editDraft.progress),
+          service: editDraft.service,
+          eta: editDraft.eta,
+          package: editDraft.packageDesc.trim() || s.package,
+          weight: Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight : s.weight,
+          dimensionsCm: editDraft.dimensionsCm.trim() || s.dimensionsCm,
+          updated_at: nowStr,
+          origin: { ...s.origin, city: nextOrigin },
+          dest: { ...s.dest, city: nextDest },
+          current: { ...s.current, location: editDraft.currentLocation },
+          sender: {
+            ...s.sender,
+            name: editDraft.senderName.trim() || s.sender.name,
+            city: nextOrigin,
+            address: editDraft.senderAddress.trim() || s.sender.address,
+            email: editDraft.senderEmail.trim() || undefined,
+            phone: editDraft.senderPhone.trim() || undefined,
+          },
+          receiver: {
+            ...s.receiver,
+            name: editDraft.receiverName.trim() || s.receiver.name,
+            city: nextDest,
+            address: editDraft.receiverAddress.trim() || s.receiver.address,
+            email: editDraft.receiverEmail.trim() || undefined,
+            phone: editDraft.receiverPhone.trim() || undefined,
+          },
+          courier: {
+            ...s.courier,
+            name: editDraft.courierName,
+            phone: editDraft.courierPhone,
+            vehicle: editDraft.courierVehicle,
+          },
+          proofImage: editDraft.parcelImages[0] || undefined,
+          parcelImages: editDraft.parcelImages.length > 0 ? editDraft.parcelImages : undefined,
+          payment: {
+            ...s.payment,
+            state: nextPaymentState,
+            total: `£${nextFee.toFixed(2)}`,
+            shippingFee: `£${(nextFee / 1.2).toFixed(2)}`,
+            vatFee: `£${(nextFee - nextFee / 1.2).toFixed(2)}`,
+            paid:
+              nextPaymentState === 'Partial'
+                ? `£${(nextFee * 0.5).toFixed(2)}`
+                : `£${nextFee.toFixed(2)}`,
+            balance:
+              nextPaymentState === 'Partial' ? `£${(nextFee * 0.5).toFixed(2)}` : '£0.00',
+          },
+          events: nextEvents,
+        };
+        return updatedLocal;
+      })
     );
+    if (updatedLocal && lastDispatchedShipment?.tracking_no === editingTrackingNo) {
+      setLastDispatchedShipment(updatedLocal);
+    }
     setEditingTrackingNo(null);
     showToast(`Updated ${editingTrackingNo} locally`);
   };
 
   const handleCreateShipment = async (e: React.FormEvent) => {
     e.preventDefault();
+    const reqToken = adminToken;
     const payload = {
       trackingNo: newForm.trackingNo.trim() || undefined,
       originCity: newForm.originCity.trim(),
@@ -665,9 +786,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       destLat: Number(newForm.destLat) || 53.4808,
       destLng: Number(newForm.destLng) || -2.2426,
       senderName: newForm.senderName.trim(),
+      senderAddress: newForm.senderAddress.trim() || undefined,
       senderEmail: newForm.senderEmail.trim() || undefined,
       senderPhone: newForm.senderPhone.trim() || undefined,
       receiverName: newForm.receiverName.trim(),
+      receiverAddress: newForm.receiverAddress.trim() || undefined,
       receiverEmail: newForm.receiverEmail.trim() || undefined,
       receiverPhone: newForm.receiverPhone.trim() || undefined,
       courierName: newForm.courierName.trim(),
@@ -676,13 +799,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       service: newForm.service,
       packageDesc: newForm.packageDesc.trim(),
       weightKg: Number(newForm.weightKg) || 2.0,
+      dimensionsCm: newForm.dimensionsCm.trim() || '35x25x18 cm',
       totalFee: Number(newForm.totalFee) || 24.99,
       eta: newForm.eta.trim(),
       parcelImages: newForm.parcelImages,
       proofImage: newForm.parcelImages[0] || undefined,
     };
 
-    if (isOnline && adminToken) {
+    if (isOnline && reqToken) {
       try {
         const res = await fetch('/api/admin/shipments', {
           method: 'POST',
@@ -690,7 +814,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(payload),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         const data = await res.json();
@@ -698,6 +822,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           onAdminShipmentsChange([data.shipment, ...shipments]);
           if (data.alert) onTriggerAlert(data.alert);
           onSelectTracking(data.shipment.tracking_no);
+          setLastDispatchedShipment(data.shipment);
           setCreateOpen(false);
           setNewForm((f) => ({ ...f, trackingNo: '', parcelImages: [] }));
           setImageUrlInput('');
@@ -713,7 +838,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
 
     const rand = Math.floor(100000 + Math.random() * 899999);
-    const trackingNo = payload.trackingNo || `TP26AD${rand}`;
+    const trackingNo = (payload.trackingNo || `TP26AD${rand}`).toUpperCase();
     const localShipment: Shipment = {
       tracking_no: trackingNo,
       receipt_no: `RCP-OFFLINE-${String(rand).slice(0, 4)}`,
@@ -722,7 +847,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       service: payload.service,
       package: payload.packageDesc,
       weight: payload.weightKg,
-      dimensionsCm: '35x25x18 cm',
+      dimensionsCm: payload.dimensionsCm,
       pieces: 1,
       progress: 20,
       origin: { city: payload.originCity, lat: payload.originLat, lng: payload.originLng },
@@ -737,14 +862,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       sender: {
         name: payload.senderName,
         city: payload.originCity,
-        address: payload.originCity,
+        address: payload.senderAddress || payload.originCity,
         email: payload.senderEmail,
         phone: payload.senderPhone,
       },
       receiver: {
         name: payload.receiverName,
         city: payload.destCity,
-        address: payload.destCity,
+        address: payload.receiverAddress || payload.destCity,
         email: payload.receiverEmail,
         phone: payload.receiverPhone,
       },
@@ -793,6 +918,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     };
     onAdminShipmentsChange([localShipment, ...shipments]);
     onSelectTracking(trackingNo);
+    setLastDispatchedShipment(localShipment);
     setCreateOpen(false);
     setNewForm((f) => ({ ...f, trackingNo: '', parcelImages: [] }));
     setImageUrlInput('');
@@ -804,14 +930,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       showToast('Keep at least one active shipment in the fleet.');
       return;
     }
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'DELETE',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
       } catch {
@@ -820,6 +947,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
     const remaining = shipments.filter((s) => s.tracking_no !== trackingNo);
     onAdminShipmentsChange(remaining);
+    if (lastDispatchedShipment?.tracking_no === trackingNo) {
+      setLastDispatchedShipment(null);
+    }
     if (selectedTrackingNo === trackingNo && remaining[0]) {
       onSelectTracking(remaining[0].tracking_no);
     }
@@ -830,7 +960,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     trackingNo: string,
     paymentState: Shipment['payment']['state']
   ) => {
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'PATCH',
@@ -838,7 +969,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ paymentState }),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -874,7 +1005,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleBroadcastAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastForm.title.trim() || !broadcastForm.message.trim()) return;
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch('/api/admin/alerts', {
           method: 'POST',
@@ -882,7 +1014,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(broadcastForm),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -912,7 +1044,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleToggleContactStatus = async (msg: ContactMessage) => {
     const nextStatus = msg.status === 'resolved' ? 'open' : 'resolved';
     const note = noteDrafts[msg.id] ?? msg.adminNote ?? '';
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
           method: 'PATCH',
@@ -920,7 +1053,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ status: nextStatus, adminNote: note }),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -1021,10 +1154,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const handleIssueReturn = async (e: React.FormEvent) => {
     e.preventDefault();
+    const reqToken = adminToken;
     const code =
       newReturnForm.code.trim().toUpperCase() ||
       `RET-UK-${Math.floor(1000 + Math.random() * 8999)}`;
-    if (isOnline && adminToken) {
+    if (isOnline && reqToken) {
       try {
         const res = await fetch('/api/admin/returns', {
           method: 'POST',
@@ -1036,7 +1170,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           }),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -1067,7 +1201,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleCycleReturnStatus = async (ret: ReturnRequest) => {
     const order: Array<ReturnRequest['status']> = ['Issued', 'Scanned', 'In Transit', 'Refunded'];
     const next = order[(order.indexOf(ret.status) + 1) % order.length];
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
           method: 'PATCH',
@@ -1075,7 +1210,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ status: next }),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
       } catch {
@@ -1092,6 +1227,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       .filter(Boolean);
     if (lines.length === 0) return;
 
+    const reqToken = adminToken;
     let created = 0;
     const nextList = [...shipments];
     for (const line of lines) {
@@ -1113,7 +1249,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           }),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -1130,14 +1266,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   const handleResetDemo = async () => {
-    if (isOnline && adminToken) {
+    const reqToken = adminToken;
+    if (isOnline && reqToken) {
       try {
         const res = await fetch('/api/admin/reset', {
           method: 'POST',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {
-          handleSessionExpired();
+          handleSessionExpired(reqToken);
           return;
         }
         if (res.ok) {
@@ -1436,6 +1573,76 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         </div>
       )}
 
+      {lastDispatchedShipment && (
+        <div className="mb-6 bg-white border-2 border-[#1d1d1f] shadow-[6px_6px_0_#FFCC00] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 bg-[#FFCC00] text-[#1d1d1f] text-[10px] font-extrabold uppercase tracking-wider">
+                Parcel Ready
+              </span>
+              <span className="text-xs font-bold text-[#6b6b70]">
+                {lastDispatchedShipment.origin.city} → {lastDispatchedShipment.dest.city}
+              </span>
+              <span className="text-xs font-bold text-emerald-700">
+                · {lastDispatchedShipment.status}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-mono-tabular font-extrabold text-lg sm:text-xl text-[#1d1d1f]">
+                {lastDispatchedShipment.tracking_no}
+              </span>
+              <span className="text-xs font-mono-tabular text-[#6b6b70]">
+                Receipt: {lastDispatchedShipment.receipt_no}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => copyTrackingCode(lastDispatchedShipment.tracking_no)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-neutral-300 bg-[#f2f2f2] hover:border-[#1d1d1f] text-xs font-bold text-[#1d1d1f] cursor-pointer"
+            >
+              {copiedCode === lastDispatchedShipment.tracking_no ? (
+                <Check className="w-3.5 h-3.5 text-emerald-700" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {copiedCode === lastDispatchedShipment.tracking_no ? 'Copied!' : 'Copy Code'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSelectTracking(lastDispatchedShipment.tracking_no);
+                onNavigate('track');
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1d1d1f] text-[#FFCC00] hover:bg-black text-xs font-extrabold cursor-pointer"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Track Parcel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openEditor(lastDispatchedShipment)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit Parcel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLastDispatchedShipment(null)}
+              aria-label="Dismiss dispatched parcel banner"
+              className="p-1.5 text-[#6b6b70] hover:text-[#1d1d1f] cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Workspace Grid: Left Sidebar + Main Viewport */}
       <div className="grid lg:grid-cols-12 gap-6 items-start">
         {/* Left Navigation Sidebar */}
@@ -1637,7 +1844,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <tbody className="divide-y divide-neutral-200">
                     {shipments.slice(0, 6).map((s) => (
                       <tr key={s.tracking_no} className="hover:bg-[#FFF6CC]/40">
-                        <td className="py-2.5 px-4 font-mono-tabular font-bold">{s.tracking_no}</td>
+                        <td className="py-2.5 px-4 font-mono-tabular font-bold">
+                          <div className="inline-flex items-center gap-1.5">
+                            <span>{s.tracking_no}</span>
+                            <button
+                              type="button"
+                              onClick={() => copyTrackingCode(s.tracking_no)}
+                              title={`Copy ${s.tracking_no}`}
+                              aria-label={`Copy ${s.tracking_no}`}
+                              className="p-1 text-[#6b6b70] hover:text-[#1d1d1f] cursor-pointer"
+                            >
+                              {copiedCode === s.tracking_no ? (
+                                <Check className="w-3 h-3 text-emerald-700" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
                         <td className="py-2.5 px-4">
                           {s.origin.city.split(',')[0]} → {s.dest.city.split(',')[0]}
                         </td>
@@ -1660,7 +1884,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             }}
                             className="font-bold text-[#1d1d1f] hover:underline cursor-pointer"
                           >
-                            Map
+                            Track
                           </button>
                         </td>
                       </tr>
@@ -1675,18 +1899,41 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           {activeTab === 'shipments' && (
             <div className="bg-white border border-neutral-200 p-5 space-y-5">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 text-[#6b6b70] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tracking, receipt, city, courier or receiver..."
-                    className="w-full border border-neutral-300 pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#1d1d1f]"
-                  />
+                <div className="flex flex-wrap items-center gap-2 flex-1 max-w-xl">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="w-4 h-4 text-[#6b6b70] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Enter or search tracking code, receipt, city, courier..."
+                      className="w-full border border-neutral-300 pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#1d1d1f]"
+                    />
+                  </div>
+                  {searchQuery.trim() && filteredShipments.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectTracking(filteredShipments[0].tracking_no);
+                          onNavigate('track');
+                        }}
+                        className="px-2.5 py-2 bg-[#1d1d1f] text-[#FFCC00] text-[11px] font-bold hover:bg-black cursor-pointer whitespace-nowrap"
+                      >
+                        Track {filteredShipments[0].tracking_no}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditor(filteredShipments[0])}
+                        className="px-2.5 py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                      >
+                        Edit Match
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {['All', 'In Transit', 'Arrived at Hub', 'Delivered', 'Route Deviation'].map(
+                  {['All', 'Picked Up', 'In Transit', 'Arrived at Hub', 'Delivered', 'Route Deviation'].map(
                     (st) => (
                       <button
                         key={st}
@@ -1737,10 +1984,25 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       {filteredShipments.map((s) => (
                         <tr key={s.tracking_no} className="hover:bg-[#FFF6CC]/40">
                           <td className="py-2.5 px-3">
-                            <span className="font-mono-tabular font-bold block text-[#1d1d1f]">
-                              {s.tracking_no}
-                            </span>
-                            <span className="font-mono-tabular text-[10px] text-[#6b6b70]">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono-tabular font-bold text-[#1d1d1f]">
+                                {s.tracking_no}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => copyTrackingCode(s.tracking_no)}
+                                title={`Copy ${s.tracking_no}`}
+                                aria-label={`Copy ${s.tracking_no}`}
+                                className="p-1 text-[#6b6b70] hover:text-[#1d1d1f] cursor-pointer"
+                              >
+                                {copiedCode === s.tracking_no ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-700" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                            <span className="font-mono-tabular text-[10px] text-[#6b6b70] block">
                               {s.receipt_no}
                             </span>
                           </td>
@@ -1794,9 +2056,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               type="button"
                               onClick={() => openEditor(s)}
                               aria-label={`Edit ${s.tracking_no}`}
-                              className="p-1.5 bg-[#f2f2f2] hover:bg-[#FFCC00] inline-flex cursor-pointer"
+                              className="px-2 py-1.5 bg-[#f2f2f2] hover:bg-[#FFCC00] inline-flex items-center gap-1 font-bold text-[11px] cursor-pointer"
                             >
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil className="w-3 h-3" />
+                              <span>Edit</span>
                             </button>
                             <button
                               type="button"
@@ -1805,9 +2068,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 onNavigate('track');
                               }}
                               aria-label={`Live Track ${s.tracking_no}`}
-                              className="p-1.5 bg-[#f2f2f2] hover:bg-[#1B6CFF] hover:text-white inline-flex cursor-pointer"
+                              className="px-2 py-1.5 bg-[#1d1d1f] text-[#FFCC00] hover:bg-[#1B6CFF] hover:text-white inline-flex items-center gap-1 font-bold text-[11px] cursor-pointer"
                             >
-                              <Navigation className="w-3.5 h-3.5" />
+                              <Navigation className="w-3 h-3" />
+                              <span>Track</span>
                             </button>
                             <button
                               type="button"
@@ -3464,13 +3728,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             <div className="grid sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block font-bold mb-1">Tracking No (optional)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold">Tracking Code (optional)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = `MP${new Date().getFullYear().toString().slice(-2)}${Math.floor(
+                        100000 + Math.random() * 899999
+                      )}`;
+                      setNewForm((f) => ({ ...f, trackingNo: code }));
+                    }}
+                    className="text-[11px] font-extrabold text-[#1B6CFF] hover:underline cursor-pointer"
+                  >
+                    Generate Code
+                  </button>
+                </div>
                 <input
                   type="text"
                   placeholder="Auto e.g. TP26AD102938"
                   value={newForm.trackingNo}
-                  onChange={(e) => setNewForm((f) => ({ ...f, trackingNo: e.target.value }))}
-                  className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  onChange={(e) =>
+                    setNewForm((f) => ({ ...f, trackingNo: e.target.value.toUpperCase() }))
+                  }
+                  className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular uppercase"
                 />
               </div>
               <div>
@@ -3551,6 +3831,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     />
                   </div>
                 </div>
+                <div className="sm:col-span-3">
+                  <label className="block font-bold mb-1">Sender Pickup Address</label>
+                  <input
+                    type="text"
+                    value={newForm.senderAddress}
+                    onChange={(e) => setNewForm((f) => ({ ...f, senderAddress: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2"
+                  />
+                </div>
               </div>
 
               {/* Receiver Contact Block */}
@@ -3594,6 +3883,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       className="w-full border border-neutral-300 pl-8 pr-3 py-2 font-mono-tabular"
                     />
                   </div>
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="block font-bold mb-1">Receiver Delivery Address</label>
+                  <input
+                    type="text"
+                    value={newForm.receiverAddress}
+                    onChange={(e) => setNewForm((f) => ({ ...f, receiverAddress: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2"
+                  />
                 </div>
               </div>
 
@@ -3643,25 +3941,47 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   className="w-full border border-neutral-300 px-3 py-2"
                 />
               </div>
-              <div>
-                <label className="block font-bold mb-1">Weight (kg)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={newForm.weightKg}
-                  onChange={(e) => setNewForm((f) => ({ ...f, weightKg: e.target.value }))}
-                  className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold mb-1">Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newForm.weightKg}
+                    onChange={(e) => setNewForm((f) => ({ ...f, weightKg: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Dimensions</label>
+                  <input
+                    type="text"
+                    value={newForm.dimensionsCm}
+                    onChange={(e) => setNewForm((f) => ({ ...f, dimensionsCm: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block font-bold mb-1">Total Fee (£)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newForm.totalFee}
-                  onChange={(e) => setNewForm((f) => ({ ...f, totalFee: e.target.value }))}
-                  className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold mb-1">Total Fee (£)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newForm.totalFee}
+                    onChange={(e) => setNewForm((f) => ({ ...f, totalFee: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">ETA Window</label>
+                  <input
+                    type="text"
+                    value={newForm.eta}
+                    onChange={(e) => setNewForm((f) => ({ ...f, eta: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2"
+                  />
+                </div>
               </div>
 
               {/* Parcel Pictures Upload Block */}
@@ -3794,12 +4114,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveEdit}
-            className="bg-white border-2 border-[#1d1d1f] shadow-[8px_8px_0_#1d1d1f] w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 space-y-4"
+            className="bg-white border-2 border-[#1d1d1f] shadow-[8px_8px_0_#1d1d1f] w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 space-y-4"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
-              <h2 className="font-display text-xl text-[#1d1d1f]">
-                Edit Shipment · <span className="font-mono-tabular">{editingTrackingNo}</span>
-              </h2>
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-200 gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="font-display text-xl text-[#1d1d1f]">
+                  Edit Shipment · <span className="font-mono-tabular">{editingTrackingNo}</span>
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => copyTrackingCode(editingTrackingNo)}
+                  className="inline-flex items-center gap-1 px-2 py-1 border border-neutral-300 bg-[#f2f2f2] text-[11px] font-bold hover:border-[#1d1d1f] cursor-pointer"
+                >
+                  {copiedCode === editingTrackingNo ? (
+                    <Check className="w-3 h-3 text-emerald-700" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                  <span>{copiedCode === editingTrackingNo ? 'Copied' : 'Copy Code'}</span>
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setEditingTrackingNo(null)}
@@ -3839,6 +4173,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 />
               </div>
               <div>
+                <label className="block font-bold mb-1">Origin City</label>
+                <input
+                  type="text"
+                  value={editDraft.originCity}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, originCity: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Destination City</label>
+                <input
+                  type="text"
+                  value={editDraft.destCity}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, destCity: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div>
                 <label className="block font-bold mb-1">Current Location</label>
                 <input
                   type="text"
@@ -3855,6 +4207,117 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   type="text"
                   value={editDraft.eta}
                   onChange={(e) => setEditDraft((d) => ({ ...d, eta: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+
+              {/* Parcel Specs & Billing */}
+              <div className="sm:col-span-2 pt-2 border-t border-neutral-200">
+                <p className="font-extrabold uppercase tracking-wider text-[11px] text-[#6b6b70]">
+                  Parcel Specs &amp; Billing
+                </p>
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Service Tier</label>
+                <select
+                  value={editDraft.service}
+                  onChange={(e) =>
+                    setEditDraft((d) => ({
+                      ...d,
+                      service: e.target.value as Shipment['service'],
+                    }))
+                  }
+                  className="w-full border border-neutral-300 px-3 py-2 font-bold"
+                >
+                  <option value="Economy">Economy</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Express">Express</option>
+                  <option value="Same Day">Same Day</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Package Contents</label>
+                <input
+                  type="text"
+                  value={editDraft.packageDesc}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, packageDesc: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold mb-1">Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editDraft.weightKg}
+                    onChange={(e) => setEditDraft((d) => ({ ...d, weightKg: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Dimensions</label>
+                  <input
+                    type="text"
+                    value={editDraft.dimensionsCm}
+                    onChange={(e) => setEditDraft((d) => ({ ...d, dimensionsCm: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold mb-1">Total Fee (£)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editDraft.totalFee}
+                    onChange={(e) => setEditDraft((d) => ({ ...d, totalFee: e.target.value }))}
+                    className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Payment Stamp</label>
+                  <select
+                    value={editDraft.paymentState}
+                    onChange={(e) =>
+                      setEditDraft((d) => ({
+                        ...d,
+                        paymentState: e.target.value as Shipment['payment']['state'],
+                      }))
+                    }
+                    className="w-full border border-neutral-300 px-3 py-2 font-bold"
+                  >
+                    {PAYMENT_STATES.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Sender & Receiver Details */}
+              <div className="sm:col-span-2 pt-2 border-t border-neutral-200">
+                <p className="font-extrabold uppercase tracking-wider text-[11px] text-[#6b6b70]">
+                  Sender &amp; Receiver Details
+                </p>
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Sender Name</label>
+                <input
+                  type="text"
+                  value={editDraft.senderName}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, senderName: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Sender Address</label>
+                <input
+                  type="text"
+                  value={editDraft.senderAddress}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, senderAddress: e.target.value }))}
                   className="w-full border border-neutral-300 px-3 py-2"
                 />
               </div>
@@ -3877,6 +4340,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 />
               </div>
               <div>
+                <label className="block font-bold mb-1">Receiver Name</label>
+                <input
+                  type="text"
+                  value={editDraft.receiverName}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, receiverName: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Receiver Address</label>
+                <input
+                  type="text"
+                  value={editDraft.receiverAddress}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, receiverAddress: e.target.value }))}
+                  className="w-full border border-neutral-300 px-3 py-2"
+                />
+              </div>
+              <div>
                 <label className="block font-bold mb-1">Receiver Email</label>
                 <input
                   type="email"
@@ -3893,6 +4374,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   onChange={(e) => setEditDraft((d) => ({ ...d, receiverPhone: e.target.value }))}
                   className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
                 />
+              </div>
+
+              {/* Courier & Checkpoint */}
+              <div className="sm:col-span-2 pt-2 border-t border-neutral-200">
+                <p className="font-extrabold uppercase tracking-wider text-[11px] text-[#6b6b70]">
+                  Courier &amp; Checkpoint Scan
+                </p>
               </div>
               <div>
                 <label className="block font-bold mb-1">Courier Name</label>
@@ -3912,26 +4400,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
                 />
               </div>
-              <div>
-                <label className="block font-bold mb-1">Payment Stamp</label>
-                <select
-                  value={editDraft.paymentState}
-                  onChange={(e) =>
-                    setEditDraft((d) => ({
-                      ...d,
-                      paymentState: e.target.value as Shipment['payment']['state'],
-                    }))
-                  }
-                  className="w-full border border-neutral-300 px-3 py-2 font-bold"
-                >
-                  {PAYMENT_STATES.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block font-bold mb-1">Vehicle ID</label>
                 <input
                   type="text"

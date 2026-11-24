@@ -202,10 +202,25 @@ export default function App() {
       .then((data) => {
         if (cancelled || !data?.ok) return;
         if (Array.isArray(data.shipments) && data.shipments.length > 0) {
+          const parseUpdatedMs = (ts?: string) => {
+            if (!ts) return 0;
+            const ms = Date.parse(ts.includes('T') ? ts : ts.replace(' ', 'T'));
+            return Number.isFinite(ms) ? ms : 0;
+          };
           setShipments((prev) => {
-            const serverIds = new Set((data.shipments as Shipment[]).map((s) => s.tracking_no));
-            const localOnly = prev.filter((s) => !serverIds.has(s.tracking_no));
-            return [...localOnly, ...data.shipments];
+            const prevMap = new Map(prev.map((s) => [s.tracking_no.toUpperCase(), s]));
+            const mergedServer = (data.shipments as Shipment[]).map((srv) => {
+              const local = prevMap.get(srv.tracking_no.toUpperCase());
+              if (local && parseUpdatedMs(local.updated_at) > parseUpdatedMs(srv.updated_at)) {
+                return local;
+              }
+              return srv;
+            });
+            const serverIds = new Set(
+              (data.shipments as Shipment[]).map((s) => s.tracking_no.toUpperCase())
+            );
+            const localOnly = prev.filter((s) => !serverIds.has(s.tracking_no.toUpperCase()));
+            return [...localOnly, ...mergedServer];
           });
         }
       })
@@ -425,7 +440,9 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+          ...(adminToken
+            ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+            : {}),
         },
         body: JSON.stringify({ actions: queue }),
       });
@@ -464,7 +481,9 @@ export default function App() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+              ...(adminToken
+                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+                : {}),
             },
             body: JSON.stringify({ ...coords, deviationThresholdMeters }),
           });
@@ -579,7 +598,9 @@ export default function App() {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+              ...(adminToken
+                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+                : {}),
             },
             body: JSON.stringify({ geofences }),
           });
@@ -678,7 +699,7 @@ export default function App() {
             headers: {
               'Content-Type': 'application/json',
               ...(payload.senderRole === 'admin' && adminToken
-                ? { Authorization: `Bearer ${adminToken}` }
+                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
                 : {}),
             },
             body: JSON.stringify(payload),
@@ -777,7 +798,9 @@ export default function App() {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+              ...(adminToken
+                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+                : {}),
             },
             body: JSON.stringify({ status }),
           });
@@ -815,7 +838,9 @@ export default function App() {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+              ...(adminToken
+                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+                : {}),
             },
             body: JSON.stringify(nextSettings),
           });
@@ -837,6 +862,43 @@ export default function App() {
       return { ok: true };
     },
     [adminToken, handleAdminLogout, isOnline]
+  );
+
+  const handleLookupShipment = useCallback(
+    async (code: string): Promise<Shipment | null> => {
+      const clean = code.trim().toUpperCase();
+      if (!clean) return null;
+      if (isOnline) {
+        try {
+          const res = await fetch(`/api/shipments/${encodeURIComponent(clean)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.shipment) {
+              const found = data.shipment as Shipment;
+              setShipments((prev) => {
+                const idx = prev.findIndex(
+                  (s) => s.tracking_no.toUpperCase() === found.tracking_no.toUpperCase()
+                );
+                if (idx === -1) return [found, ...prev];
+                const next = [...prev];
+                next[idx] = found;
+                return next;
+              });
+              return found;
+            }
+          }
+        } catch {
+          // Fall back to cached shipments below
+        }
+      }
+      return (
+        shipments.find(
+          (s) =>
+            s.tracking_no.toUpperCase() === clean || s.receipt_no.toUpperCase() === clean
+        ) || null
+      );
+    },
+    [isOnline, shipments]
   );
 
   const handleRequestNotifications = async () => {
@@ -950,6 +1012,7 @@ export default function App() {
             shipments={shipments}
             selectedTrackingNo={selectedTrackingNo}
             onSelectTracking={setSelectedTrackingNo}
+            onLookupShipment={handleLookupShipment}
             onOpenPlayback={(id) => {
               setSelectedTrackingNo(id);
               navigate('analytics');
@@ -959,6 +1022,8 @@ export default function App() {
             quotaExceeded={quotaExceeded}
             supportEmail={siteSettings.contact.email}
             contactSettings={siteSettings.contact}
+            isAdminAuthenticated={Boolean(adminToken)}
+            onBackToAdmin={() => navigate('admin')}
           />
         )}
 

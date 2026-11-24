@@ -227,51 +227,105 @@ function requireAdminAuth(
   next();
 }
 
-// In-memory state store synchronized with clients via REST + SSE
-let shipments: Shipment[] = structuredClone(SEED_SHIPMENTS);
-let alerts: PushAlert[] = structuredClone(SEED_ALERTS);
-let siteSettings: SiteSettings = structuredClone(DEFAULT_SITE_SETTINGS);
-let supportTickets: SupportTicket[] = structuredClone(SEED_SUPPORT_TICKETS);
-let contactMessages: ContactMessage[] = [
-  {
-    id: 'msg-1001',
-    name: 'Amelia Hart',
-    email: 'amelia@example.com',
-    subject: 'Delivery window request · TP26AB100245',
-    message: 'Could the courier call 15 minutes before reaching Deansgate Manchester?',
-    createdAt: '2026-10-09T11:20:00.000Z',
-    status: 'open',
-  },
-  {
-    id: 'msg-1002',
-    name: 'Nordic Studio Ltd',
-    email: 'ops@nordicstudio.co.uk',
-    subject: 'Business API webhook verification',
-    message: 'Requesting production webhook signing key for monthly bulk CSV batch manifests.',
-    createdAt: '2026-10-08T16:45:00.000Z',
-    status: 'resolved',
-    adminNote: 'Webhook secret provisioned and tested against staging endpoint.',
-  },
-];
+const FLEET_STATE_FILE = path.join(os.tmpdir(), 'metro-parcel-fleet.json');
 
-let returnRequests: ReturnRequest[] = [
-  {
-    id: 'ret-101',
-    code: 'RET-UK-9042',
-    retailer: 'Soho Footwear Ltd',
-    dropPoint: 'Testford Lockers #14, London',
-    status: 'Scanned',
-    createdAt: '2026-10-09 09:15',
-  },
-  {
-    id: 'ret-102',
-    code: 'RET-EU-3180',
-    retailer: 'Atelier Nord',
-    dropPoint: 'Central Station Smart Locker, Berlin',
-    status: 'Issued',
-    createdAt: '2026-10-09 13:40',
-  },
-];
+interface PersistedFleetState {
+  shipments?: Shipment[];
+  alerts?: PushAlert[];
+  siteSettings?: SiteSettings;
+  supportTickets?: SupportTicket[];
+  contactMessages?: ContactMessage[];
+  returnRequests?: ReturnRequest[];
+}
+
+function readPersistedFleetState(): PersistedFleetState {
+  try {
+    if (!fs.existsSync(FLEET_STATE_FILE)) return {};
+    const raw = fs.readFileSync(FLEET_STATE_FILE, 'utf-8');
+    const parsed = JSON.parse(raw) as PersistedFleetState;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const persistedFleet = readPersistedFleetState();
+
+// In-memory state store synchronized with clients via REST + SSE + tmp disk cache
+let shipments: Shipment[] =
+  Array.isArray(persistedFleet.shipments) && persistedFleet.shipments.length > 0
+    ? persistedFleet.shipments
+    : structuredClone(SEED_SHIPMENTS);
+let alerts: PushAlert[] = Array.isArray(persistedFleet.alerts)
+  ? persistedFleet.alerts
+  : structuredClone(SEED_ALERTS);
+let siteSettings: SiteSettings = persistedFleet.siteSettings ?? structuredClone(DEFAULT_SITE_SETTINGS);
+let supportTickets: SupportTicket[] = Array.isArray(persistedFleet.supportTickets)
+  ? persistedFleet.supportTickets
+  : structuredClone(SEED_SUPPORT_TICKETS);
+let contactMessages: ContactMessage[] = Array.isArray(persistedFleet.contactMessages)
+  ? persistedFleet.contactMessages
+  : [
+      {
+        id: 'msg-1001',
+        name: 'Amelia Hart',
+        email: 'amelia@example.com',
+        subject: 'Delivery window request · TP26AB100245',
+        message: 'Could the courier call 15 minutes before reaching Deansgate Manchester?',
+        createdAt: '2026-10-09T11:20:00.000Z',
+        status: 'open',
+      },
+      {
+        id: 'msg-1002',
+        name: 'Nordic Studio Ltd',
+        email: 'ops@nordicstudio.co.uk',
+        subject: 'Business API webhook verification',
+        message: 'Requesting production webhook signing key for monthly bulk CSV batch manifests.',
+        createdAt: '2026-10-08T16:45:00.000Z',
+        status: 'resolved',
+        adminNote: 'Webhook secret provisioned and tested against staging endpoint.',
+      },
+    ];
+
+let returnRequests: ReturnRequest[] = Array.isArray(persistedFleet.returnRequests)
+  ? persistedFleet.returnRequests
+  : [
+      {
+        id: 'ret-101',
+        code: 'RET-UK-9042',
+        retailer: 'Soho Footwear Ltd',
+        dropPoint: 'Testford Lockers #14, London',
+        status: 'Scanned',
+        createdAt: '2026-10-09 09:15',
+      },
+      {
+        id: 'ret-102',
+        code: 'RET-EU-3180',
+        retailer: 'Atelier Nord',
+        dropPoint: 'Central Station Smart Locker, Berlin',
+        status: 'Issued',
+        createdAt: '2026-10-09 13:40',
+      },
+    ];
+
+function persistFleetState() {
+  try {
+    fs.writeFileSync(
+      FLEET_STATE_FILE,
+      JSON.stringify({
+        shipments,
+        alerts,
+        siteSettings,
+        supportTickets,
+        contactMessages,
+        returnRequests,
+      }),
+      { mode: 0o600 }
+    );
+  } catch {
+    // Ignore read-only filesystems
+  }
+}
 
 type SSEClient = express.Response;
 const sseClients = new Set<SSEClient>();
@@ -507,6 +561,7 @@ app.post('/api/shipments/:id/position', requireAdminAuth, (req, res) => {
   if (nextAlerts.length > 0) {
     alerts = [...nextAlerts, ...alerts].slice(0, 50);
   }
+  persistFleetState();
 
   broadcastSSE('position', { shipment: updatedShipment, newAlerts: nextAlerts });
   res.json({ ok: true, shipment: updatedShipment, newAlerts: nextAlerts });
@@ -525,6 +580,7 @@ app.put('/api/geofences/:trackingNo', requireAdminAuth, (req, res) => {
     return;
   }
   shipments[idx] = { ...shipments[idx], geofences };
+  persistFleetState();
   broadcastSSE('geofences', { trackingNo: shipments[idx].tracking_no, geofences });
   res.json({ ok: true, shipment: shipments[idx] });
 });
@@ -1012,6 +1068,7 @@ app.post('/api/admin/shipments', (req, res) => {
     lng: originLng,
   };
   alerts = [alert, ...alerts].slice(0, 50);
+  persistFleetState();
   broadcastSSE('shipment_created', { shipment: newShipment, alert });
   res.status(201).json({ ok: true, shipment: newShipment, alert });
 });
@@ -1053,14 +1110,40 @@ app.patch('/api/admin/shipments/:id', (req, res) => {
     });
   }
 
-  const updatedPayment = body.paymentState
-    ? {
-        ...current.payment,
-        state: body.paymentState as Shipment['payment']['state'],
-        paid: body.paymentState === 'Paid' ? current.payment.total : current.payment.paid,
-        balance: body.paymentState === 'Paid' || body.paymentState === 'Refunded' ? '£0.00' : current.payment.balance,
-      }
-    : current.payment;
+  const parsedFee =
+    body.totalFee !== undefined && body.totalFee !== '' && Number.isFinite(Number(body.totalFee)) && Number(body.totalFee) > 0
+      ? Number(body.totalFee)
+      : null;
+
+  const nextPaymentState = (body.paymentState || current.payment.state) as Shipment['payment']['state'];
+  const baseTotalNum =
+    parsedFee !== null
+      ? parsedFee
+      : Number(String(current.payment.total).replace(/[^0-9.-]+/g, '')) || 0;
+
+  const updatedPayment: Shipment['payment'] = {
+    ...current.payment,
+    state: nextPaymentState,
+    ...(parsedFee !== null
+      ? {
+          total: `£${parsedFee.toFixed(2)}`,
+          shippingFee: `£${(parsedFee / 1.2).toFixed(2)}`,
+          vatFee: `£${(parsedFee - parsedFee / 1.2).toFixed(2)}`,
+        }
+      : {}),
+    paid:
+      nextPaymentState === 'Partial'
+        ? `£${(baseTotalNum * 0.5).toFixed(2)}`
+        : nextPaymentState === 'Paid' || nextPaymentState === 'Customs Cleared' || parsedFee !== null
+        ? `£${baseTotalNum.toFixed(2)}`
+        : current.payment.paid,
+    balance:
+      nextPaymentState === 'Partial'
+        ? `£${(baseTotalNum * 0.5).toFixed(2)}`
+        : nextPaymentState === 'Paid' || nextPaymentState === 'Refunded' || nextPaymentState === 'Customs Cleared'
+        ? '£0.00'
+        : current.payment.balance,
+  };
 
   const nextParcelImages: string[] | undefined = Array.isArray(body.parcelImages)
     ? body.parcelImages
@@ -1069,27 +1152,61 @@ app.patch('/api/admin/shipments/:id', (req, res) => {
         .slice(0, 6)
     : current.parcelImages;
 
+  const nextOriginCity =
+    body.originCity !== undefined && String(body.originCity).trim()
+      ? String(body.originCity).trim()
+      : current.origin.city;
+  const nextDestCity =
+    body.destCity !== undefined && String(body.destCity).trim()
+      ? String(body.destCity).trim()
+      : current.dest.city;
+
   const updated: Shipment = {
     ...current,
     status: nextStatus,
     progress: nextProgress,
     service: body.service ?? current.service,
     eta: body.eta !== undefined ? String(body.eta) : current.eta,
-    package: body.package !== undefined ? String(body.package) : current.package,
-    weight: body.weight !== undefined ? Number(body.weight) : current.weight,
+    package:
+      body.package !== undefined
+        ? String(body.package)
+        : body.packageDesc !== undefined
+        ? String(body.packageDesc)
+        : current.package,
+    weight:
+      body.weight !== undefined
+        ? Number(body.weight) || current.weight
+        : body.weightKg !== undefined
+        ? Number(body.weightKg) || current.weight
+        : current.weight,
     dimensionsCm: body.dimensionsCm !== undefined ? String(body.dimensionsCm) : current.dimensionsCm,
+    pieces: body.pieces !== undefined ? Math.max(1, Number(body.pieces) || current.pieces) : current.pieces,
     updated_at: nowStr,
+    origin: {
+      ...current.origin,
+      city: nextOriginCity,
+    },
+    dest: {
+      ...current.dest,
+      city: nextDestCity,
+    },
     current: {
       ...current.current,
       location: nextCurrentLocation,
     },
     sender: {
       ...current.sender,
+      name: body.senderName !== undefined ? String(body.senderName).trim() || current.sender.name : current.sender.name,
+      city: nextOriginCity,
+      address: body.senderAddress !== undefined ? String(body.senderAddress).trim() || current.sender.address : current.sender.address,
       email: body.senderEmail !== undefined ? String(body.senderEmail).trim() || undefined : current.sender.email,
       phone: body.senderPhone !== undefined ? String(body.senderPhone).trim() || undefined : current.sender.phone,
     },
     receiver: {
       ...current.receiver,
+      name: body.receiverName !== undefined ? String(body.receiverName).trim() || current.receiver.name : current.receiver.name,
+      city: nextDestCity,
+      address: body.receiverAddress !== undefined ? String(body.receiverAddress).trim() || current.receiver.address : current.receiver.address,
       email: body.receiverEmail !== undefined ? String(body.receiverEmail).trim() || undefined : current.receiver.email,
       phone: body.receiverPhone !== undefined ? String(body.receiverPhone).trim() || undefined : current.receiver.phone,
     },
@@ -1110,6 +1227,7 @@ app.patch('/api/admin/shipments/:id', (req, res) => {
   };
 
   shipments[idx] = updated;
+  persistFleetState();
   broadcastSSE('shipment_updated', { shipment: updated });
   res.json({ ok: true, shipment: updated });
 });
@@ -1174,6 +1292,7 @@ app.post('/api/admin/shipments/:id/events', (req, res) => {
     lng: updated.current.lng,
   };
   alerts = [alert, ...alerts].slice(0, 50);
+  persistFleetState();
   broadcastSSE('shipment_updated', { shipment: updated, alert });
   res.status(201).json({ ok: true, shipment: updated, alert });
 });
@@ -1186,6 +1305,7 @@ app.delete('/api/admin/shipments/:id', (req, res) => {
     return;
   }
   shipments = shipments.filter((s) => s.tracking_no.toUpperCase() !== id);
+  persistFleetState();
   broadcastSSE('shipment_deleted', { trackingNo: id });
   res.json({ ok: true, deleted: id });
 });
@@ -1278,6 +1398,7 @@ app.post('/api/admin/reset', (_req, res) => {
   alerts = structuredClone(SEED_ALERTS);
   siteSettings = structuredClone(DEFAULT_SITE_SETTINGS);
   supportTickets = structuredClone(SEED_SUPPORT_TICKETS);
+  persistFleetState();
   broadcastSSE('reset', { shipments, alerts, settings: siteSettings, tickets: supportTickets });
   res.json({ ok: true, shipments, alerts, settings: siteSettings, tickets: supportTickets });
 });

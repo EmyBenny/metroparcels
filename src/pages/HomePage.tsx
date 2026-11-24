@@ -46,12 +46,36 @@ const HERO_SLIDES = [
   },
 ];
 
+const HERO_BACKDROP_SCENES = [
+  {
+    src: '/src/assets/images/hero_cargo_flight_1795524833013.jpg',
+    anim: 'animate-tp-backdrop-a',
+  },
+  {
+    src: '/src/assets/images/hero_parcel_warehouse_1795524832212.jpg',
+    anim: 'animate-tp-backdrop-b',
+  },
+  {
+    src: '/src/assets/images/golden_courier_hub_fleet_1795375426253.jpg',
+    anim: 'animate-tp-backdrop-a',
+  },
+  {
+    src: '/src/assets/images/golden_courier_parcels_1795375425863.jpg',
+    anim: 'animate-tp-backdrop-b',
+  },
+  {
+    src: '/src/assets/images/golden_courier_driver_1795375426210.jpg',
+    anim: 'animate-tp-backdrop-a',
+  },
+];
+
 export const HomePage: React.FC<HomePageProps> = ({
   faqs,
   onNavigate,
   onTrackShipment,
 }) => {
   const [slideIdx, setSlideIdx] = useState(0);
+  const [backdropIdx, setBackdropIdx] = useState(0);
   const [trackInput, setTrackInput] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -62,16 +86,41 @@ export const HomePage: React.FC<HomePageProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const backdropTimer = setInterval(() => {
+      setBackdropIdx((i) => (i + 1) % HERO_BACKDROP_SCENES.length);
+    }, 4800);
+    return () => clearInterval(backdropTimer);
+  }, []);
+
   const slide = HERO_SLIDES[slideIdx];
 
   return (
     <div>
       {/* HERO SECTION */}
       <section className="bg-[#FFCC00] pt-10 pb-16 lg:pt-14 lg:pb-24 relative overflow-hidden">
+        {/* Moving Faded Logistics Backdrop (Flights, Cargo Hubs, Fleet & Parcels) */}
         <div
           aria-hidden="true"
-          className="absolute -right-24 -bottom-24 w-96 h-96 rounded-full border-[48px] border-black/[0.04] pointer-events-none"
-        />
+          className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0"
+        >
+          {HERO_BACKDROP_SCENES.map((scene, idx) => (
+            <div
+              key={scene.src}
+              className={`absolute inset-0 transition-opacity duration-[1600ms] ease-in-out ${
+                idx === backdropIdx ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={scene.src}
+                alt=""
+                referrerPolicy="no-referrer"
+                className={`w-full h-full object-cover saturate-[0.45] contrast-125 brightness-105 opacity-[0.68] sm:opacity-[0.72] mix-blend-multiply ${scene.anim}`}
+              />
+            </div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#FFCC00]/32 via-[#FFCC00]/16 to-[#FFCC00]/38 lg:bg-gradient-to-r lg:from-[#FFCC00]/52 lg:via-[#FFCC00]/22 lg:to-[#FFCC00]/8" />
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
@@ -85,7 +134,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </span>
                 <span className="block">{slide.line3}</span>
               </h1>
-              <p className="mt-5 text-base sm:text-xl text-[#1d1d1f]/85 max-w-xl font-medium leading-relaxed">
+              <p className="mt-5 text-base sm:text-xl text-[#1d1d1f] max-w-xl font-semibold leading-relaxed drop-shadow-[0_1px_0_rgba(255,204,0,0.75)]">
                 {slide.copy}
               </p>
 
@@ -100,7 +149,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigate('analytics')}
-                  className="px-6 py-3.5 border-2 border-[#1d1d1f] text-[#1d1d1f] font-bold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
+                  className="px-6 py-3.5 bg-[#FFCC00]/80 backdrop-blur-[2px] border-2 border-[#1d1d1f] text-[#1d1d1f] font-bold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
                 >
                   Route Playback & Analytics
                 </button>

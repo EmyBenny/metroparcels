@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
   BellRing,
   Camera,
   Copy,
@@ -26,26 +27,33 @@ interface TrackPageProps {
   shipments: Shipment[];
   selectedTrackingNo: string;
   onSelectTracking: (trackingNo: string) => void;
+  onLookupShipment?: (code: string) => Promise<Shipment | null>;
   onOpenPlayback: (trackingNo: string) => void;
   alerts: PushAlert[];
   isOnline: boolean;
   quotaExceeded: boolean;
   supportEmail?: string;
   contactSettings?: SiteSettings['contact'];
+  isAdminAuthenticated?: boolean;
+  onBackToAdmin?: () => void;
 }
 
 export const TrackPage: React.FC<TrackPageProps> = ({
   shipments,
   selectedTrackingNo,
   onSelectTracking,
+  onLookupShipment,
   onOpenPlayback,
   alerts,
   isOnline,
   quotaExceeded,
   supportEmail = 'support@metroparcel.demo',
   contactSettings,
+  isAdminAuthenticated = false,
+  onBackToAdmin,
 }) => {
   const [searchInput, setSearchInput] = useState(selectedTrackingNo);
+  const [lookingUp, setLookingUp] = useState(false);
   const [showGeofences, setShowGeofences] = useState(true);
   const [detailTab, setDetailTab] = useState<ParcelDetailTab>('overview');
   const [copiedShare, setCopiedShare] = useState(false);
@@ -66,6 +74,19 @@ export const TrackPage: React.FC<TrackPageProps> = ({
     setSearchInput(selectedTrackingNo);
   }, [selectedTrackingNo]);
 
+  useEffect(() => {
+    const clean = selectedTrackingNo.trim().toUpperCase();
+    if (!clean || !isOnline || !onLookupShipment) return;
+    let cancelled = false;
+    setLookingUp(true);
+    onLookupShipment(clean).finally(() => {
+      if (!cancelled) setLookingUp(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTrackingNo, isOnline]);
+
   const normalizedQuery = selectedTrackingNo.trim().toUpperCase();
   const shipment = normalizedQuery
     ? shipments.find(
@@ -75,11 +96,15 @@ export const TrackPage: React.FC<TrackPageProps> = ({
       ) || null
     : null;
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchInput.trim().toUpperCase();
     onSelectTracking(q);
     setDetailTab('overview');
+    if (q && isOnline && onLookupShipment) {
+      setLookingUp(true);
+      await onLookupShipment(q).finally(() => setLookingUp(false));
+    }
   };
 
   const handleClearTracking = () => {
@@ -127,6 +152,22 @@ export const TrackPage: React.FC<TrackPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 lg:pb-12">
+      {isAdminAuthenticated && onBackToAdmin && (
+        <div className="mb-4 bg-[#1d1d1f] text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-[#FFCC00]">
+            Admin Session Active — Tracking live parcel telemetry
+          </span>
+          <button
+            type="button"
+            onClick={onBackToAdmin}
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FFCC00] text-[#1d1d1f] font-extrabold hover:bg-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Admin Portal</span>
+          </button>
+        </div>
+      )}
+
       {/* Tracking Code Search Bar (No other users' codes displayed) */}
       <div className="bg-white border border-neutral-200 p-4 sm:p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -154,7 +195,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               type="submit"
               className="px-5 py-2.5 bg-[#1d1d1f] text-[#FFCC00] font-bold text-sm hover:bg-black transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              Track now
+              {lookingUp ? 'Searching…' : 'Track now'}
             </button>
             {normalizedQuery && (
               <button
@@ -168,7 +209,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
           </form>
         </div>
 
-        {normalizedQuery && !shipment && (
+        {normalizedQuery && !shipment && !lookingUp && (
           <div className="mt-4 p-3.5 bg-amber-50 border border-amber-300 text-xs text-amber-950">
             No parcel found for tracking code <strong className="font-mono-tabular">{normalizedQuery}</strong>. Please check your code and try again.
           </div>
@@ -181,7 +222,11 @@ export const TrackPage: React.FC<TrackPageProps> = ({
             <Package className="w-7 h-7 text-[#1d1d1f]" />
           </div>
           <h2 className="font-display text-2xl text-[#1d1d1f]">
-            {normalizedQuery ? 'Tracking Code Not Found' : 'Enter Your Tracking Code'}
+            {lookingUp
+              ? 'Locating Shipment Telemetry…'
+              : normalizedQuery
+                ? 'Tracking Code Not Found'
+                : 'Enter Your Tracking Code'}
           </h2>
           <p className="text-sm text-[#6b6b70] mt-2 leading-relaxed">
             For customer privacy, Metro Parcel Service only displays telemetry, courier details, stamped receipts, and return options for the exact tracking or receipt code you provide above.
