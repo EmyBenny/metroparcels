@@ -646,6 +646,7 @@ app.put('/api/admin/settings', (req, res) => {
       address: safeAddress,
       email: safeEmail,
       phone: safePhone,
+      whatsapp: String(nextContact.whatsapp ?? siteSettings.contact.whatsapp ?? '+447447484073').trim().slice(0, 60),
       supportHours: String(nextContact.supportHours ?? siteSettings.contact.supportHours).trim().slice(0, 120),
       salesHours: String(nextContact.salesHours ?? siteSettings.contact.salesHours).trim().slice(0, 120),
     },

@@ -60,7 +60,11 @@ export function loadCachedSettings(): SiteSettings {
     if (!raw) return DEFAULT_SITE_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<SiteSettings>;
     return {
-      contact: { ...DEFAULT_SITE_SETTINGS.contact, ...(parsed.contact || {}) },
+      contact: {
+        ...DEFAULT_SITE_SETTINGS.contact,
+        ...(parsed.contact || {}),
+        whatsapp: parsed.contact?.whatsapp || DEFAULT_SITE_SETTINGS.contact.whatsapp,
+      },
       about: {
         ...DEFAULT_SITE_SETTINGS.about,
         ...(parsed.about || {}),

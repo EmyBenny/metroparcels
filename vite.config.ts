@@ -18,7 +18,7 @@ export default defineConfig(() => {
           name: 'Metro Parcel Service',
           short_name: 'Metro Parcel',
           description: 'Real-time GPS parcel tracking, geofencing alerts, route playback & stamped parcel receipts with offline support.',
-          theme_color: '#FFCC00',
+          theme_color: '#9D7110',
           background_color: '#1d1d1f',
           display: 'standalone',
           start_url: '/',

@@ -480,6 +480,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     address: '123 Demo Parcel Lane, Testford, London, ZZ99 9ZZ, United Kingdom',
     email: 'support@metroparcel.demo',
     phone: '+1234567890',
+    whatsapp: '+447447484073',
     supportHours: 'Chat & phone: 24/7',
     salesHours: 'Sales: Mon–Fri, 8:00–18:00',
   },

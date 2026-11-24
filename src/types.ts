@@ -208,6 +208,7 @@ export interface SiteSettings {
     address: string;
     email: string;
     phone: string;
+    whatsapp?: string;
     supportHours: string;
     salesHours: string;
   };
