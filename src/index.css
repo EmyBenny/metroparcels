@@ -74,34 +74,36 @@
 
 @keyframes tp-kenburns-a {
   0% {
-    transform: scale(1.02) translate3d(0%, 0%, 0);
+    transform: scale(1.05) translate3d(-2.5%, 0%, 0);
   }
   50% {
-    transform: scale(1.1) translate3d(-2%, -1.5%, 0);
+    transform: scale(1.14) translate3d(2.5%, -1.5%, 0);
   }
   100% {
-    transform: scale(1.02) translate3d(0%, 0%, 0);
+    transform: scale(1.05) translate3d(-2.5%, 0%, 0);
   }
 }
 
 @keyframes tp-kenburns-b {
   0% {
-    transform: scale(1.08) translate3d(-1.5%, 1%, 0);
+    transform: scale(1.14) translate3d(2.5%, -1%, 0);
   }
   50% {
-    transform: scale(1.02) translate3d(1.5%, -1%, 0);
+    transform: scale(1.05) translate3d(-2.5%, 1.5%, 0);
   }
   100% {
-    transform: scale(1.08) translate3d(-1.5%, 1%, 0);
+    transform: scale(1.14) translate3d(2.5%, -1%, 0);
   }
 }
 
 .animate-tp-backdrop-a {
-  animation: tp-kenburns-a 16s ease-in-out infinite;
+  will-change: transform;
+  animation: tp-kenburns-a 14s ease-in-out infinite;
 }
 
 .animate-tp-backdrop-b {
-  animation: tp-kenburns-b 16s ease-in-out infinite;
+  will-change: transform;
+  animation: tp-kenburns-b 14s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

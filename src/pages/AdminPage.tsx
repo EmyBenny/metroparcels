@@ -102,7 +102,7 @@ interface AdminPageProps {
   ) => Promise<void>;
   onUpdateGeofences: (trackingNo: string, geofences: GeofenceZone[]) => Promise<void>;
   onMarkAllAlertsRead: () => void;
-  onAdminShipmentsChange: (nextShipments: Shipment[]) => void;
+  onAdminShipmentsChange: React.Dispatch<React.SetStateAction<Shipment[]>>;
   onAdminAlertsChange: (nextAlerts: PushAlert[]) => void;
   onTriggerAlert: (alert: PushAlert) => void;
   siteSettings: SiteSettings;
@@ -369,21 +369,25 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   useEffect(() => {
-    if (adminToken || !isOnline) {
+    if (!isOnline) {
       setAuthStatusLoading(false);
       return;
     }
     let cancelled = false;
-    setAuthStatusLoading(true);
-    fetch('/api/admin/auth/status')
+    setAuthStatusLoading(!adminToken);
+    fetch('/api/admin/auth/status', {
+      headers: getAdminHeaders(),
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled && data?.ok) {
-          setNeedsSetup(Boolean(data.needsSetup));
+        if (cancelled || !data?.ok) return;
+        setNeedsSetup(Boolean(data.needsSetup));
+        if (adminToken && data.authenticated === false) {
+          handleSessionExpired(adminToken);
         }
       })
       .catch(() => {
-        // Keep login form visible
+        // Keep login form or cached token state
       })
       .finally(() => {
         if (!cancelled) setAuthStatusLoading(false);
@@ -668,8 +672,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         }
         if (res.ok) {
           const data = await res.json();
-          onAdminShipmentsChange(
-            shipments.map((s) => (s.tracking_no === editingTrackingNo ? data.shipment : s))
+          onAdminShipmentsChange((prev) =>
+            prev.map((s) => (s.tracking_no === editingTrackingNo ? data.shipment : s))
           );
           if (lastDispatchedShipment?.tracking_no === editingTrackingNo) {
             setLastDispatchedShipment(data.shipment);
@@ -683,11 +687,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       }
     }
 
-    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const nowIso = new Date().toISOString();
+    const nowStr = nowIso.replace('T', ' ').slice(0, 19);
     const shortTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     let updatedLocal: Shipment | null = null;
-    onAdminShipmentsChange(
-      shipments.map((s) => {
+    onAdminShipmentsChange((prev) =>
+      prev.map((s) => {
         if (s.tracking_no !== editingTrackingNo) return s;
         const nextFee =
           Number.isFinite(parsedFee) && parsedFee > 0
@@ -721,7 +726,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           package: editDraft.packageDesc.trim() || s.package,
           weight: Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight : s.weight,
           dimensionsCm: editDraft.dimensionsCm.trim() || s.dimensionsCm,
-          updated_at: nowStr,
+          updated_at: nowIso,
           origin: { ...s.origin, city: nextOrigin },
           dest: { ...s.dest, city: nextDest },
           current: { ...s.current, location: editDraft.currentLocation },
@@ -819,7 +824,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         }
         const data = await res.json();
         if (res.ok && data.shipment) {
-          onAdminShipmentsChange([data.shipment, ...shipments]);
+          onAdminShipmentsChange((prev) =>
+            prev.some((s) => s.tracking_no === data.shipment.tracking_no)
+              ? prev.map((s) => (s.tracking_no === data.shipment.tracking_no ? data.shipment : s))
+              : [data.shipment, ...prev]
+          );
           if (data.alert) onTriggerAlert(data.alert);
           onSelectTracking(data.shipment.tracking_no);
           setLastDispatchedShipment(data.shipment);

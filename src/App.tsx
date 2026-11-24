@@ -52,12 +52,37 @@ function isAdminPortalPath(pathname: string): boolean {
   return clean === '/adminportal';
 }
 
+const ADMIN_TOKEN_STORAGE_KEY = 'metro_admin_token_v1';
+const ADMIN_EMAIL_STORAGE_KEY = 'metro_admin_email_v1';
+
+function parseUtcUpdatedMs(ts?: string): number {
+  if (!ts) return 0;
+  const trimmed = ts.trim();
+  const isoCandidate = trimmed.includes('T')
+    ? trimmed
+    : `${trimmed.replace(' ', 'T')}Z`;
+  const ms = Date.parse(isoCandidate);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageRoute>(() =>
     isAdminPortalPath(window.location.pathname) ? 'admin' : 'home'
   );
-  const [adminToken, setAdminToken] = useState<string | null>(null);
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const [adminToken, setAdminToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const [adminEmail, setAdminEmail] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(ADMIN_EMAIL_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [shipments, setShipments] = useState<Shipment[]>(() => loadCachedShipments());
   const [selectedTrackingNo, setSelectedTrackingNo] = useState<string>('');
   const [alerts, setAlerts] = useState<PushAlert[]>(() => loadCachedAlerts());
@@ -82,12 +107,31 @@ export default function App() {
     getNotificationPermission()
   );
 
+  const currentPageRef = React.useRef(currentPage);
+  currentPageRef.current = currentPage;
+  const adminTokenRef = React.useRef(adminToken);
+  adminTokenRef.current = adminToken;
+  const selectedTrackingNoRef = React.useRef(selectedTrackingNo);
+  selectedTrackingNoRef.current = selectedTrackingNo;
+
   const handleAdminAuthenticated = useCallback((token: string, email: string) => {
+    try {
+      sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+      sessionStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, email);
+    } catch {
+      // Ignore storage restrictions
+    }
     setAdminToken(token);
     setAdminEmail(email);
   }, []);
 
   const handleAdminLogout = useCallback(() => {
+    try {
+      sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+      sessionStorage.removeItem(ADMIN_EMAIL_STORAGE_KEY);
+    } catch {
+      // Ignore storage restrictions
+    }
     setAdminToken(null);
     setAdminEmail(null);
   }, []);
@@ -165,33 +209,30 @@ export default function App() {
     });
   }, []);
 
-  const triggerAlerts = useCallback(
-    (newAlerts: PushAlert[]) => {
-      if (newAlerts.length === 0) return;
-      setAlerts((prev) => {
-        const existingIds = new Set(prev.map((a) => a.id));
-        const unique = newAlerts.filter((a) => !existingIds.has(a.id));
-        return [...unique, ...prev].slice(0, 50);
-      });
-      const isAdminView = currentPage === 'admin' && Boolean(adminToken);
-      const trackedMatch = selectedTrackingNo.trim().toUpperCase();
-      const visibleMatches = isAdminView
-        ? newAlerts
-        : trackedMatch
-          ? newAlerts.filter((a) => a.trackingNo.toUpperCase() === trackedMatch)
-          : [];
-      if (visibleMatches.length === 0) return;
-      const latest = visibleMatches[0];
-      setActiveToast(latest);
-      dispatchSystemPushNotification(latest.title, latest.message, latest.id);
-      setTimeout(() => {
-        setActiveToast((curr) => (curr?.id === latest.id ? null : curr));
-      }, 6000);
-    },
-    [adminToken, currentPage, selectedTrackingNo]
-  );
+  const triggerAlerts = useCallback((newAlerts: PushAlert[]) => {
+    if (newAlerts.length === 0) return;
+    setAlerts((prev) => {
+      const existingIds = new Set(prev.map((a) => a.id));
+      const unique = newAlerts.filter((a) => !existingIds.has(a.id));
+      return [...unique, ...prev].slice(0, 50);
+    });
+    const isAdminView = currentPageRef.current === 'admin' && Boolean(adminTokenRef.current);
+    const trackedMatch = selectedTrackingNoRef.current.trim().toUpperCase();
+    const visibleMatches = isAdminView
+      ? newAlerts
+      : trackedMatch
+        ? newAlerts.filter((a) => a.trackingNo.toUpperCase() === trackedMatch)
+        : [];
+    if (visibleMatches.length === 0) return;
+    const latest = visibleMatches[0];
+    setActiveToast(latest);
+    dispatchSystemPushNotification(latest.title, latest.message, latest.id);
+    setTimeout(() => {
+      setActiveToast((curr) => (curr?.id === latest.id ? null : curr));
+    }, 6000);
+  }, []);
 
-  // Initial sync + real-time SSE stream when online
+  // Initial sync + real-time SSE stream when online (stays connected across route changes)
   useEffect(() => {
     if (!isOnline) return;
 
@@ -202,16 +243,11 @@ export default function App() {
       .then((data) => {
         if (cancelled || !data?.ok) return;
         if (Array.isArray(data.shipments) && data.shipments.length > 0) {
-          const parseUpdatedMs = (ts?: string) => {
-            if (!ts) return 0;
-            const ms = Date.parse(ts.includes('T') ? ts : ts.replace(' ', 'T'));
-            return Number.isFinite(ms) ? ms : 0;
-          };
           setShipments((prev) => {
             const prevMap = new Map(prev.map((s) => [s.tracking_no.toUpperCase(), s]));
             const mergedServer = (data.shipments as Shipment[]).map((srv) => {
               const local = prevMap.get(srv.tracking_no.toUpperCase());
-              if (local && parseUpdatedMs(local.updated_at) > parseUpdatedMs(srv.updated_at)) {
+              if (local && parseUtcUpdatedMs(local.updated_at) > parseUtcUpdatedMs(srv.updated_at)) {
                 return local;
               }
               return srv;
@@ -354,7 +390,7 @@ export default function App() {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
+        if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
           upsertTicket(parsed.ticket);
         }
       } catch {
@@ -370,10 +406,10 @@ export default function App() {
         };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
+        if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
           upsertTicket(parsed.ticket);
         }
-        if (parsed.reply?.senderRole === 'admin' && owned && currentPage !== 'admin') {
+        if (parsed.reply?.senderRole === 'admin' && owned && currentPageRef.current !== 'admin') {
           setSupportToast({
             ticketCode: parsed.ticket.ticketCode,
             senderName: parsed.reply.senderName,
@@ -397,7 +433,7 @@ export default function App() {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
         const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if ((currentPage === 'admin' && Boolean(adminToken)) || owned) {
+        if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
           upsertTicket(parsed.ticket);
         }
       } catch {
@@ -416,7 +452,7 @@ export default function App() {
         if (Array.isArray(parsed.shipments)) setShipments(parsed.shipments);
         if (Array.isArray(parsed.alerts)) setAlerts(parsed.alerts);
         if (parsed.settings) setSiteSettings(parsed.settings);
-        if (Array.isArray(parsed.tickets) && currentPage === 'admin' && Boolean(adminToken)) {
+        if (Array.isArray(parsed.tickets) && currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) {
           setSupportTickets(parsed.tickets);
         }
       } catch {
@@ -428,7 +464,7 @@ export default function App() {
       cancelled = true;
       sse.close();
     };
-  }, [adminToken, isOnline, currentPage, triggerAlerts, upsertTicket]);
+  }, [isOnline, triggerAlerts, upsertTicket]);
 
   // Flush queued offline actions automatically when back online
   const syncOfflineQueue = useCallback(async () => {
@@ -875,16 +911,22 @@ export default function App() {
             const data = await res.json();
             if (data.shipment) {
               const found = data.shipment as Shipment;
+              let resolved: Shipment = found;
               setShipments((prev) => {
                 const idx = prev.findIndex(
                   (s) => s.tracking_no.toUpperCase() === found.tracking_no.toUpperCase()
                 );
                 if (idx === -1) return [found, ...prev];
+                const existing = prev[idx];
+                if (parseUtcUpdatedMs(existing.updated_at) > parseUtcUpdatedMs(found.updated_at)) {
+                  resolved = existing;
+                  return prev;
+                }
                 const next = [...prev];
                 next[idx] = found;
                 return next;
               });
-              return found;
+              return resolved;
             }
           }
         } catch {

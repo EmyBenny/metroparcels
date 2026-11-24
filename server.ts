@@ -535,7 +535,7 @@ app.post('/api/shipments/:id/position', requireAdminAuth, (req, res) => {
     ...current,
     status: nextStatus,
     progress: typeof progress === 'number' ? Math.min(100, Math.max(0, progress)) : current.progress,
-    updated_at: nowStr,
+    updated_at: new Date().toISOString(),
     current: {
       lat,
       lng,
@@ -1030,7 +1030,7 @@ app.post('/api/admin/shipments', (req, res) => {
       }),
     },
     distance_km: Math.max(15, Math.round(distanceMeters({ lat: originLat, lng: originLng }, { lat: destLat, lng: destLng }) / 1000)),
-    updated_at: nowStr,
+    updated_at: new Date().toISOString(),
     proofImage: primaryProof,
     parcelImages: parcelImages.length > 0 ? parcelImages : primaryProof ? [primaryProof] : undefined,
     events: [
@@ -1181,7 +1181,7 @@ app.patch('/api/admin/shipments/:id', (req, res) => {
         : current.weight,
     dimensionsCm: body.dimensionsCm !== undefined ? String(body.dimensionsCm) : current.dimensionsCm,
     pieces: body.pieces !== undefined ? Math.max(1, Number(body.pieces) || current.pieces) : current.pieces,
-    updated_at: nowStr,
+    updated_at: new Date().toISOString(),
     origin: {
       ...current.origin,
       city: nextOriginCity,
@@ -1260,7 +1260,7 @@ app.post('/api/admin/shipments/:id/events', (req, res) => {
         : nextStatus === 'Delivered'
         ? 100
         : current.progress,
-    updated_at: nowStr,
+    updated_at: new Date().toISOString(),
     current: {
       ...current.current,
       location: String(location),

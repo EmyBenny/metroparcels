@@ -15,6 +15,12 @@ import type { FaqItem, PageRoute, Shipment } from '../types';
 import { PWAInstallButton } from '../components/PWAInstallButton';
 import { HomeMediaShowcase } from '../components/HomeMediaShowcase';
 
+import heroCargoFlightImg from '../assets/images/hero_cargo_flight_1795524833013.jpg';
+import heroParcelWarehouseImg from '../assets/images/hero_parcel_warehouse_1795524832212.jpg';
+import heroHubFleetImg from '../assets/images/golden_courier_hub_fleet_1795375426253.jpg';
+import heroParcelsImg from '../assets/images/golden_courier_parcels_1795375425863.jpg';
+import heroFleetVanImg from '../assets/images/trackpro_fleet_van_1795252246008.jpg';
+
 interface HomePageProps {
   shipments: Shipment[];
   faqs?: FaqItem[];
@@ -48,24 +54,34 @@ const HERO_SLIDES = [
 
 const HERO_BACKDROP_SCENES = [
   {
-    src: '/src/assets/images/hero_cargo_flight_1795524833013.jpg',
+    id: 'cargo-flight',
+    src: heroCargoFlightImg,
     anim: 'animate-tp-backdrop-a',
+    pos: 'object-center',
   },
   {
-    src: '/src/assets/images/hero_parcel_warehouse_1795524832212.jpg',
+    id: 'parcel-warehouse',
+    src: heroParcelWarehouseImg,
     anim: 'animate-tp-backdrop-b',
+    pos: 'object-center',
   },
   {
-    src: '/src/assets/images/golden_courier_hub_fleet_1795375426253.jpg',
+    id: 'hub-fleet',
+    src: heroHubFleetImg,
     anim: 'animate-tp-backdrop-a',
+    pos: 'object-center',
   },
   {
-    src: '/src/assets/images/golden_courier_parcels_1795375425863.jpg',
+    id: 'priority-parcels',
+    src: heroParcelsImg,
     anim: 'animate-tp-backdrop-b',
+    pos: 'object-center',
   },
   {
-    src: '/src/assets/images/golden_courier_driver_1795375426210.jpg',
+    id: 'fleet-van',
+    src: heroFleetVanImg,
     anim: 'animate-tp-backdrop-a',
+    pos: 'object-center',
   },
 ];
 
@@ -75,7 +91,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onTrackShipment,
 }) => {
   const [slideIdx, setSlideIdx] = useState(0);
-  const [backdropIdx, setBackdropIdx] = useState(0);
+  const [backdrop, setBackdrop] = useState({ idx: 0, prev: 0 });
   const [trackInput, setTrackInput] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -87,9 +103,17 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, []);
 
   useEffect(() => {
+    HERO_BACKDROP_SCENES.forEach((scene) => {
+      const img = new Image();
+      img.referrerPolicy = 'no-referrer';
+      img.src = scene.src;
+    });
     const backdropTimer = setInterval(() => {
-      setBackdropIdx((i) => (i + 1) % HERO_BACKDROP_SCENES.length);
-    }, 4800);
+      setBackdrop((b) => ({
+        idx: (b.idx + 1) % HERO_BACKDROP_SCENES.length,
+        prev: b.idx,
+      }));
+    }, 5200);
     return () => clearInterval(backdropTimer);
   }, []);
 
@@ -104,28 +128,36 @@ export const HomePage: React.FC<HomePageProps> = ({
           aria-hidden="true"
           className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0"
         >
-          {HERO_BACKDROP_SCENES.map((scene, idx) => (
-            <div
-              key={scene.src}
-              className={`absolute inset-0 transition-opacity duration-[1600ms] ease-in-out ${
-                idx === backdropIdx ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <img
-                src={scene.src}
-                alt=""
-                referrerPolicy="no-referrer"
-                className={`w-full h-full object-cover saturate-[0.45] contrast-125 brightness-105 opacity-[0.68] sm:opacity-[0.72] mix-blend-multiply ${scene.anim}`}
-              />
-            </div>
-          ))}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#FFCC00]/32 via-[#FFCC00]/16 to-[#FFCC00]/38 lg:bg-gradient-to-r lg:from-[#FFCC00]/52 lg:via-[#FFCC00]/22 lg:to-[#FFCC00]/8" />
+          {HERO_BACKDROP_SCENES.map((scene, idx) => {
+            const isCurrent = idx === backdrop.idx;
+            const isPrevious = idx === backdrop.prev && backdrop.prev !== backdrop.idx;
+            return (
+              <div
+                key={scene.id}
+                style={{
+                  opacity: isCurrent || isPrevious ? 1 : 0,
+                  zIndex: isCurrent ? 2 : isPrevious ? 1 : 0,
+                }}
+                className="absolute inset-0 transition-opacity duration-1000 ease-in-out will-change-[opacity]"
+              >
+                <img
+                  src={scene.src}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className={`w-full h-full object-cover ${scene.pos} saturate-[0.9] contrast-115 opacity-[0.66] sm:opacity-[0.70] ${scene.anim}`}
+                />
+              </div>
+            );
+          })}
+          <div className="absolute inset-0 z-[3] bg-gradient-to-b from-[#FFCC00]/26 via-[#FFCC00]/8 to-[#FFCC00]/22 lg:bg-gradient-to-r lg:from-[#FFCC00]/40 lg:via-[#FFCC00]/14 lg:to-[#FFCC00]/4" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-7">
-              <h1 className="font-display uppercase text-[#1d1d1f] text-5xl sm:text-6xl lg:text-7xl leading-[0.88] tracking-tight text-balance">
+              <h1 className="font-display uppercase text-[#1d1d1f] text-5xl sm:text-6xl lg:text-7xl leading-[0.88] tracking-tight text-balance [text-shadow:0_2px_18px_rgba(255,204,0,0.98),0_1px_4px_rgba(255,204,0,0.95)]">
                 <span className="block">{slide.line1}</span>
                 <span
                   className={`inline-block ${slide.bandColor} text-white px-3 py-1 my-2 -rotate-1`}
@@ -134,7 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </span>
                 <span className="block">{slide.line3}</span>
               </h1>
-              <p className="mt-5 text-base sm:text-xl text-[#1d1d1f] max-w-xl font-semibold leading-relaxed drop-shadow-[0_1px_0_rgba(255,204,0,0.75)]">
+              <p className="mt-5 text-base sm:text-xl text-[#1d1d1f] max-w-xl font-bold leading-relaxed [text-shadow:0_1px_14px_rgba(255,204,0,0.98),0_1px_4px_rgba(255,204,0,0.95)]">
                 {slide.copy}
               </p>
 
@@ -149,7 +181,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigate('analytics')}
-                  className="px-6 py-3.5 bg-[#FFCC00]/80 backdrop-blur-[2px] border-2 border-[#1d1d1f] text-[#1d1d1f] font-bold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
+                  className="px-6 py-3.5 bg-[#FFCC00]/92 backdrop-blur-[2px] border-2 border-[#1d1d1f] text-[#1d1d1f] font-bold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
                 >
                   Route Playback & Analytics
                 </button>
