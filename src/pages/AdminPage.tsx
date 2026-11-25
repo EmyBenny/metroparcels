@@ -1372,13 +1372,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     return (
       <div className="min-h-screen bg-[#f2f2f2] flex flex-col">
         {/* Isolated Admin Portal Top Bar */}
-        <header className="bg-[#FFCC00] border-b border-black/10 px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="inline-flex items-center gap-2.5 text-[#1d1d1f] font-extrabold text-lg sm:text-xl tracking-tight">
-            <span className="w-8 h-8 rounded-lg bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center font-display text-base">
+        <header className="bg-[#3C2B02] text-[#F2E9D4] border-b border-[#6D500C] px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="inline-flex items-center gap-2.5 text-[#F2E9D4] font-extrabold text-lg sm:text-xl tracking-tight">
+            <span className="w-8 h-8 rounded-lg bg-[#9D7110] text-white flex items-center justify-center font-display text-base">
               M
             </span>
             <span>Metro Parcel Service</span>
-            <span className="px-2 py-0.5 bg-[#1d1d1f] text-[#FFCC00] text-[10px] font-extrabold uppercase tracking-wider">
+            <span className="px-2 py-0.5 bg-[#1E1501] text-[#CD9E34] border border-[#6D500C] text-[10px] font-extrabold uppercase tracking-wider">
               Admin Portal
             </span>
           </div>
@@ -1386,7 +1386,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('home')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-black/10 hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[#1d1d1f] text-xs font-extrabold transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1E1501] hover:bg-[#9D7110] hover:text-white text-[#CD9E34] text-xs font-extrabold transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Public Site</span>
@@ -1394,9 +1394,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         </header>
 
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-          <div className="w-full max-w-md bg-white border-2 border-[#1d1d1f] shadow-[8px_8px_0_#FFCC00] p-6 sm:p-8">
+          <div className="w-full max-w-md bg-white border-2 border-[#3C2B02] shadow-[8px_8px_0_#9D7110] p-6 sm:p-8">
             <div className="flex items-center gap-3 pb-5 border-b border-neutral-200">
-              <div className="w-11 h-11 bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 bg-[#3C2B02] text-[#CD9E34] flex items-center justify-center shrink-0">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
@@ -1490,7 +1490,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="submit"
                   disabled={authSubmitting || !isOnline}
-                  className="w-full py-3 bg-[#1d1d1f] text-[#FFCC00] hover:bg-black text-sm font-extrabold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#9D7110] text-white hover:bg-[#3C2B02] text-sm font-extrabold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   <span>
@@ -1511,19 +1511,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 pb-24 lg:pb-12">
-      {/* Top Breadcrumb & Primary Action Contract */}
-      <div className="bg-white border border-neutral-200 px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Breadcrumb & Primary Action Header (Dark Yellow-Brown) */}
+      <div className="bg-[#3C2B02] text-[#F2E9D4] border border-[#6D500C] px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#6b6b70]">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#CD9E34]/80">
             <span>Metro Parcel Service Ops</span>
             <span>/</span>
-            <span className="text-[#1d1d1f]">Admin Portal</span>
+            <span className="text-[#F2E9D4]">Admin Portal</span>
             <span>/</span>
-            <span className="text-[#1B6CFF]">
+            <span className="text-[#CD9E34]">
               {NAV_ITEMS.find((i) => i.id === activeTab)?.label}
             </span>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl text-[#1d1d1f] mt-1">
+          <h1 className="font-display text-2xl sm:text-3xl text-white mt-1">
             Operations Control Center
           </h1>
         </div>
@@ -1532,7 +1532,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('home')}
-            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-[#f2f2f2] text-[#1d1d1f] border border-neutral-300 text-xs font-bold hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-[#1E1501] text-[#F2E9D4] border border-[#6D500C] text-xs font-bold hover:bg-[#6D500C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Public Site</span>
@@ -1541,7 +1541,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#9D7110] text-white border border-[#CD9E34] text-xs font-extrabold hover:bg-[#CD9E34] hover:text-[#1E1501] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>New Dispatch</span>
@@ -1550,7 +1550,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <button
             type="button"
             onClick={handleExportFleetCsv}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1d1d1f] text-white text-xs font-bold hover:bg-black hover:text-[#FFCC00] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1E1501] text-[#CD9E34] border border-[#6D500C] text-xs font-bold hover:bg-[#9D7110] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Export Fleet CSV</span>
@@ -1559,7 +1559,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <button
             type="button"
             onClick={handleSignOut}
-            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-white text-red-700 border border-red-300 text-xs font-extrabold hover:bg-red-50 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-red-950/70 text-red-200 border border-red-700/60 text-xs font-extrabold hover:bg-red-700 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -1570,10 +1570,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       {bannerFeedback && (
         <div
           role="status"
-          className="mb-6 bg-[#1d1d1f] text-[#FFCC00] border border-[#FFCC00] px-4 py-3 text-xs font-bold flex items-center justify-between gap-3"
+          className="mb-6 bg-[#3C2B02] text-[#F2E9D4] border border-[#9D7110] px-4 py-3 text-xs font-bold flex items-center justify-between gap-3"
         >
           <span className="inline-flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#CD9E34]" />
             {bannerFeedback}
           </span>
           <button type="button" onClick={() => setBannerFeedback(null)} className="cursor-pointer">
@@ -1583,10 +1583,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       )}
 
       {lastDispatchedShipment && (
-        <div className="mb-6 bg-white border-2 border-[#1d1d1f] shadow-[6px_6px_0_#FFCC00] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="mb-6 bg-white border-2 border-[#3C2B02] shadow-[6px_6px_0_#9D7110] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 bg-[#FFCC00] text-[#1d1d1f] text-[10px] font-extrabold uppercase tracking-wider">
+              <span className="px-2 py-0.5 bg-[#9D7110] text-white text-[10px] font-extrabold uppercase tracking-wider">
                 Parcel Ready
               </span>
               <span className="text-xs font-bold text-[#6b6b70]">
@@ -1610,7 +1610,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             <button
               type="button"
               onClick={() => copyTrackingCode(lastDispatchedShipment.tracking_no)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-neutral-300 bg-[#f2f2f2] hover:border-[#1d1d1f] text-xs font-bold text-[#1d1d1f] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-neutral-300 bg-[#f2f2f2] hover:border-[#3C2B02] text-xs font-bold text-[#1d1d1f] cursor-pointer"
             >
               {copiedCode === lastDispatchedShipment.tracking_no ? (
                 <Check className="w-3.5 h-3.5 text-emerald-700" />
@@ -1627,7 +1627,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 onSelectTracking(lastDispatchedShipment.tracking_no);
                 onNavigate('track');
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1d1d1f] text-[#FFCC00] hover:bg-black text-xs font-extrabold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#1E1501] text-xs font-extrabold cursor-pointer"
             >
               <Navigation className="w-3.5 h-3.5" />
               <span>Track Parcel</span>
@@ -1635,7 +1635,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             <button
               type="button"
               onClick={() => openEditor(lastDispatchedShipment)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#9D7110] text-white border border-[#3C2B02] hover:bg-[#3C2B02] hover:text-[#CD9E34] text-xs font-extrabold cursor-pointer"
             >
               <Pencil className="w-3.5 h-3.5" />
               <span>Edit Parcel</span>
@@ -1654,16 +1654,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       {/* Workspace Grid: Left Sidebar + Main Viewport */}
       <div className="grid lg:grid-cols-12 gap-6 items-start">
-        {/* Left Navigation Sidebar */}
-        <aside className="lg:col-span-3 bg-white border border-neutral-200 p-3 space-y-1 lg:sticky lg:top-6">
-          <div className="px-3 py-2.5 mb-2 bg-[#1d1d1f] text-white flex items-center justify-between gap-2">
+        {/* Left Navigation Sidebar (Darkest Yellow-Brown #3C2B02) */}
+        <aside className="lg:col-span-3 bg-[#3C2B02] text-[#F2E9D4] border border-[#6D500C] p-3 space-y-1 lg:sticky lg:top-6">
+          <div className="px-3 py-2.5 mb-2 bg-[#1E1501] text-[#F2E9D4] border border-[#6D500C] flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#FFCC00]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#CD9E34]">
                 Signed in as Admin
               </p>
               <p className="text-xs font-bold truncate">Ops Lead · {adminEmail || 'Authenticated'}</p>
             </div>
-            <ShieldCheck className="w-5 h-5 text-[#FFCC00] shrink-0" />
+            <ShieldCheck className="w-5 h-5 text-[#CD9E34] shrink-0" />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-1">
@@ -1677,8 +1677,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-bold transition-colors cursor-pointer ${
                     active
-                      ? 'bg-[#FFCC00] text-[#1d1d1f] border-l-4 border-[#1d1d1f]'
-                      : 'text-[#1d1d1f] hover:bg-[#f2f2f2]'
+                      ? 'bg-[#9D7110] text-white border-l-4 border-[#CD9E34]'
+                      : 'text-[#F2E9D4] hover:bg-[#6D500C]/60'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2.5 min-w-0">
@@ -1688,7 +1688,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   {item.badge !== undefined && item.badge > 0 && (
                     <span
                       className={`px-1.5 py-0.5 text-[10px] font-mono-tabular font-bold ${
-                        active ? 'bg-[#1d1d1f] text-[#FFCC00]' : 'bg-neutral-200 text-[#1d1d1f]'
+                        active ? 'bg-[#1E1501] text-[#CD9E34]' : 'bg-[#1E1501]/70 text-[#F2E9D4]'
                       }`}
                     >
                       {item.badge}
@@ -1700,8 +1700,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           </div>
 
           {/* All App Pages Quick Switcher */}
-          <div className="pt-4 mt-4 border-t border-neutral-200 px-1">
-            <p className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-[#6b6b70] mb-2">
+          <div className="pt-4 mt-4 border-t border-[#6D500C] px-1">
+            <p className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-[#CD9E34] mb-2">
               Jump to App Page
             </p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -1721,7 +1721,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   key={route}
                   type="button"
                   onClick={() => onNavigate(route)}
-                  className="px-2.5 py-1.5 bg-[#f2f2f2] hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[11px] font-bold text-[#1d1d1f] flex items-center justify-between transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 bg-[#1E1501] hover:bg-[#9D7110] hover:text-white text-[11px] font-bold text-[#F2E9D4] border border-[#6D500C]/60 flex items-center justify-between transition-colors cursor-pointer"
                 >
                   <span>{label}</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -1807,7 +1807,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           onClick={() => onSelectTracking(s.tracking_no)}
                           className={`px-2.5 py-1 text-xs font-mono-tabular font-bold border cursor-pointer ${
                             s.tracking_no === activeShipment.tracking_no
-                              ? 'bg-[#FFCC00] border-[#1d1d1f]'
+                              ? 'bg-[#9D7110] text-white border-[#3C2B02]'
                               : 'bg-[#f2f2f2] border-neutral-200'
                           }`}
                         >
@@ -1852,7 +1852,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
                     {shipments.slice(0, 6).map((s) => (
-                      <tr key={s.tracking_no} className="hover:bg-[#FFF6CC]/40">
+                      <tr key={s.tracking_no} className="hover:bg-[#F2E9D4]/50">
                         <td className="py-2.5 px-4 font-mono-tabular font-bold">
                           <div className="inline-flex items-center gap-1.5">
                             <span>{s.tracking_no}</span>
@@ -1927,14 +1927,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           onSelectTracking(filteredShipments[0].tracking_no);
                           onNavigate('track');
                         }}
-                        className="px-2.5 py-2 bg-[#1d1d1f] text-[#FFCC00] text-[11px] font-bold hover:bg-black cursor-pointer whitespace-nowrap"
+                        className="px-2.5 py-2 bg-[#3C2B02] text-[#CD9E34] text-[11px] font-bold hover:bg-[#1E1501] cursor-pointer whitespace-nowrap"
                       >
                         Track {filteredShipments[0].tracking_no}
                       </button>
                       <button
                         type="button"
                         onClick={() => openEditor(filteredShipments[0])}
-                        className="px-2.5 py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                        className="px-2.5 py-2 bg-[#9D7110] text-white border border-[#3C2B02] text-[11px] font-bold cursor-pointer whitespace-nowrap"
                       >
                         Edit Match
                       </button>
@@ -1950,7 +1950,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         onClick={() => setStatusFilter(st)}
                         className={`px-2.5 py-1.5 text-[11px] font-bold border cursor-pointer ${
                           statusFilter === st
-                            ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                            ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                             : 'bg-[#f2f2f2] text-[#1d1d1f] border-neutral-200'
                         }`}
                       >
@@ -1970,7 +1970,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       setSearchQuery('');
                       setStatusFilter('All');
                     }}
-                    className="px-4 py-2 bg-[#FFCC00] text-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                    className="px-4 py-2 bg-[#9D7110] text-white text-xs font-extrabold cursor-pointer"
                   >
                     Clear Filters
                   </button>
@@ -1991,7 +1991,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </thead>
                     <tbody className="divide-y divide-neutral-200">
                       {filteredShipments.map((s) => (
-                        <tr key={s.tracking_no} className="hover:bg-[#FFF6CC]/40">
+                        <tr key={s.tracking_no} className="hover:bg-[#F2E9D4]/50">
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono-tabular font-bold text-[#1d1d1f]">
@@ -2047,7 +2047,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                   ? 'bg-emerald-100 text-emerald-900'
                                   : s.status === 'Route Deviation'
                                   ? 'bg-red-100 text-red-900'
-                                  : 'bg-[#FFF6CC] text-[#1d1d1f]'
+                                  : 'bg-[#F2E9D4] text-[#3C2B02]'
                               }`}
                             >
                               {s.status}
@@ -2065,7 +2065,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               type="button"
                               onClick={() => openEditor(s)}
                               aria-label={`Edit ${s.tracking_no}`}
-                              className="px-2 py-1.5 bg-[#f2f2f2] hover:bg-[#FFCC00] inline-flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                              className="px-2 py-1.5 bg-[#f2f2f2] hover:bg-[#9D7110] hover:text-white inline-flex items-center gap-1 font-bold text-[11px] transition-colors cursor-pointer"
                             >
                               <Pencil className="w-3 h-3" />
                               <span>Edit</span>
@@ -2077,7 +2077,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 onNavigate('track');
                               }}
                               aria-label={`Live Track ${s.tracking_no}`}
-                              className="px-2 py-1.5 bg-[#1d1d1f] text-[#FFCC00] hover:bg-[#1B6CFF] hover:text-white inline-flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                              className="px-2 py-1.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white inline-flex items-center gap-1 font-bold text-[11px] transition-colors cursor-pointer"
                             >
                               <Navigation className="w-3 h-3" />
                               <span>Track</span>
@@ -2089,7 +2089,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 setPreviewReceiptShipment(s);
                               }}
                               aria-label={`Receipt ${s.tracking_no}`}
-                              className="p-1.5 bg-[#f2f2f2] hover:bg-[#1d1d1f] hover:text-[#FFCC00] inline-flex cursor-pointer"
+                              className="p-1.5 bg-[#f2f2f2] hover:bg-[#3C2B02] hover:text-[#CD9E34] inline-flex transition-colors cursor-pointer"
                             >
                               <QrCode className="w-3.5 h-3.5" />
                             </button>
@@ -2127,7 +2127,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         onClick={() => onSelectTracking(s.tracking_no)}
                         className={`px-2.5 py-1 text-xs font-mono-tabular font-bold border cursor-pointer ${
                           s.tracking_no === activeShipment.tracking_no
-                            ? 'bg-[#FFCC00] border-[#1d1d1f]'
+                            ? 'bg-[#9D7110] text-white border-[#3C2B02]'
                             : 'bg-[#f2f2f2] border-neutral-200'
                         }`}
                       >
@@ -2203,7 +2203,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold hover:bg-black cursor-pointer"
+                    className="px-4 py-2 bg-[#3C2B02] text-[#CD9E34] text-xs font-extrabold hover:bg-[#9D7110] hover:text-white transition-colors cursor-pointer"
                   >
                     Push GPS Ping
                   </button>
@@ -2336,7 +2336,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[#FFCC00] border border-[#1d1d1f] text-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                    className="px-4 py-2 bg-[#9D7110] hover:bg-[#3C2B02] border border-[#3C2B02] text-white text-xs font-extrabold transition-colors cursor-pointer"
                   >
                     + Add Zone
                   </button>
@@ -2411,7 +2411,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 bg-[#9D7110] hover:bg-[#3C2B02] text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Broadcast Push Alert</span>
@@ -2484,7 +2484,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setCreateOpen(true)}
-                  className="px-4 py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                  className="px-4 py-2 bg-[#9D7110] hover:bg-[#3C2B02] text-white border border-[#3C2B02] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   + New Dispatch Shipment
                 </button>
@@ -2506,7 +2506,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
                     {shipments.map((s) => (
-                      <tr key={s.tracking_no} className="hover:bg-[#FFF6CC]/40">
+                      <tr key={s.tracking_no} className="hover:bg-[#F2E9D4]/50">
                         <td className="py-2.5 px-3 font-mono-tabular font-bold">{s.receipt_no}</td>
                         <td className="py-2.5 px-3 font-mono-tabular">{s.tracking_no}</td>
                         <td className="py-2.5 px-3 text-[#6b6b70]">{s.payment.method}</td>
@@ -2545,7 +2545,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               onSelectTracking(s.tracking_no);
                               setPreviewReceiptShipment(s);
                             }}
-                            className="px-2.5 py-1 bg-[#1d1d1f] text-[#FFCC00] text-[11px] font-bold cursor-pointer"
+                            className="px-2.5 py-1 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white text-[11px] font-bold transition-colors cursor-pointer"
                           >
                             View QR
                           </button>
@@ -2573,7 +2573,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigate('analytics')}
-                  className="px-4 py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold shrink-0 cursor-pointer"
+                  className="px-4 py-2.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white text-xs font-extrabold shrink-0 transition-colors cursor-pointer"
                 >
                   Open Full Playback Studio →
                 </button>
@@ -2597,7 +2597,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           {d.parcels}
                         </span>
                         <div
-                          className="w-full max-w-[44px] bg-[#1d1d1f] hover:bg-[#FFCC00] transition-colors"
+                          className="w-full max-w-[44px] bg-[#3C2B02] hover:bg-[#9D7110] transition-colors"
                           style={{ height: `${heightPct}%` }}
                         />
                       </div>
@@ -2648,7 +2648,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         onClick={() => setTicketFilter(statusKey)}
                         className={`px-3 py-1 text-[11px] font-bold border cursor-pointer ${
                           ticketFilter === statusKey
-                            ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                            ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                             : 'bg-white text-[#1d1d1f] border-neutral-300 hover:bg-[#f2f2f2]'
                         }`}
                       >
@@ -2682,7 +2682,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               onClick={() => setSelectedTicketId(ticket.id)}
                               className={`w-full text-left p-3.5 transition-colors cursor-pointer ${
                                 selected
-                                  ? 'bg-[#FFF6CC] border-l-4 border-l-[#1d1d1f]'
+                                  ? 'bg-[#F2E9D4] border-l-4 border-l-[#9D7110]'
                                   : 'bg-white hover:bg-[#f2f2f2]'
                               }`}
                             >
@@ -2702,7 +2702,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                         ? 'bg-emerald-100 text-emerald-900'
                                         : ticket.status === 'in_progress'
                                           ? 'bg-blue-100 text-blue-900'
-                                          : 'bg-[#FFE68A] text-[#1d1d1f]'
+                                          : 'bg-[#F2E9D4] text-[#3C2B02] border border-[#CD9E34]'
                                     }`}
                                   >
                                     {ticket.status === 'in_progress' ? 'Replied' : ticket.status}
@@ -2737,7 +2737,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           <div className="p-4 bg-white border-b border-neutral-200 flex flex-wrap items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-mono-tabular text-xs font-extrabold bg-[#1d1d1f] text-[#FFCC00] px-2 py-0.5">
+                                <span className="font-mono-tabular text-xs font-extrabold bg-[#3C2B02] text-[#CD9E34] px-2 py-0.5">
                                   {activeTicket.ticketCode}
                                 </span>
                                 <span className="text-xs font-extrabold text-[#1d1d1f] truncate">
@@ -2772,7 +2772,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                   onClick={() => handleChangeTicketStatus(activeTicket.id, st)}
                                   className={`px-2.5 py-1 text-[10px] font-bold uppercase border cursor-pointer ${
                                     activeTicket.status === st
-                                      ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                                      ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                                       : 'bg-white text-[#1d1d1f] border-neutral-300 hover:bg-[#f2f2f2]'
                                   }`}
                                 >
@@ -2801,7 +2801,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                     <div className="flex items-center justify-between gap-3 mb-1 text-[10px]">
                                       <span
                                         className={`font-extrabold ${
-                                          isAdminMsg ? 'text-[#FFCC00]' : 'text-[#1B6CFF]'
+                                          isAdminMsg ? 'text-[#CD9E34]' : 'text-[#1B6CFF]'
                                         }`}
                                       >
                                         {rep.senderName}
@@ -2838,7 +2838,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             <button
                               type="submit"
                               disabled={replySending || !adminReplyText.trim()}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FFCC00] border border-[#1d1d1f] text-[#1d1d1f] text-xs font-extrabold hover:bg-[#1d1d1f] hover:text-[#FFCC00] disabled:opacity-40 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#9D7110] border border-[#3C2B02] text-white text-xs font-extrabold hover:bg-[#3C2B02] hover:text-[#CD9E34] disabled:opacity-40 transition-colors cursor-pointer"
                             >
                               <Send className="w-3.5 h-3.5" />
                               <span>{replySending ? 'Sending...' : 'Send Reply'}</span>
@@ -2875,7 +2875,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             className={`px-2 py-0.5 text-[10px] font-bold uppercase ${
                               msg.status === 'resolved'
                                 ? 'bg-emerald-100 text-emerald-900'
-                                : 'bg-[#FFE68A] text-[#1d1d1f]'
+                                : 'bg-[#F2E9D4] text-[#3C2B02]'
                             }`}
                           >
                             {msg.status}
@@ -2895,7 +2895,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleToggleContactStatus(msg)}
-                            className="px-4 py-1.5 bg-[#1d1d1f] text-[#FFCC00] font-bold cursor-pointer"
+                            className="px-4 py-1.5 bg-[#3C2B02] text-[#CD9E34] font-bold cursor-pointer"
                           >
                             {msg.status === 'resolved' ? 'Reopen' : 'Mark Resolved'}
                           </button>
@@ -2947,7 +2947,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[#FFCC00] border border-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                    className="px-4 py-2 bg-[#9D7110] hover:bg-[#3C2B02] text-white border border-[#3C2B02] text-xs font-extrabold transition-colors cursor-pointer"
                   >
                     + Issue Return Pass
                   </button>
@@ -2970,7 +2970,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCycleReturnStatus(ret)}
-                        className="px-3 py-1 bg-[#1d1d1f] text-[#FFCC00] font-bold text-[11px] cursor-pointer"
+                        className="px-3 py-1 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
                       >
                         {ret.status} (Advance)
                       </button>
@@ -3042,7 +3042,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#9D7110] text-white border border-[#3C2B02] text-xs font-extrabold hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors shrink-0 cursor-pointer disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
                   <span>{savingSettings ? 'Publishing...' : 'Publish All Changes Live'}</span>
@@ -3054,7 +3054,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <div className="flex items-center justify-between">
                   <h3 className="font-extrabold text-sm text-[#1d1d1f] flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#1B6CFF]" />
-                    <span>Company Address, Email, Phone &amp; Hours</span>
+                    <span>Company Address, Email, Phone, WhatsApp &amp; Hours</span>
                   </h3>
                   <button
                     type="button"
@@ -3109,6 +3109,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         }))
                       }
                       className="w-full border border-neutral-300 px-3 py-2"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold mb-1">WhatsApp Live Chat Number</label>
+                    <input
+                      type="text"
+                      value={settingsDraft.contact.whatsapp ?? '+447447484073'}
+                      onChange={(e) =>
+                        setSettingsDraft((prev) => ({
+                          ...prev,
+                          contact: { ...prev.contact, whatsapp: e.target.value },
+                        }))
+                      }
+                      placeholder="+447447484073"
+                      className="w-full border border-neutral-300 px-3 py-2 font-mono-tabular"
                     />
                   </div>
                   <div>
@@ -3370,7 +3385,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     <button
                       type="button"
                       onClick={handleAddMilestone}
-                      className="px-4 py-1.5 bg-[#1d1d1f] text-[#FFCC00] font-bold cursor-pointer"
+                      className="px-4 py-1.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-bold transition-colors cursor-pointer"
                     >
                       + Add Milestone
                     </button>
@@ -3576,7 +3591,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <button
                         type="button"
                         onClick={handleAddFaq}
-                        className="px-4 py-1.5 bg-[#1d1d1f] text-[#FFCC00] font-bold cursor-pointer"
+                        className="px-4 py-1.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-bold transition-colors cursor-pointer"
                       >
                         + Add FAQ
                       </button>
@@ -3588,7 +3603,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <button
                     type="submit"
                     disabled={savingSettings}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#9D7110] text-white border border-[#3C2B02] text-xs font-extrabold hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
                     <span>{savingSettings ? 'Publishing...' : 'Save & Publish All Site Content'}</span>
@@ -3631,7 +3646,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="button"
                   onClick={handleBulkCsvImport}
-                  className="px-5 py-2.5 bg-[#FFCC00] border border-[#1d1d1f] text-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                  className="px-5 py-2.5 bg-[#9D7110] hover:bg-[#3C2B02] border border-[#3C2B02] text-white text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   Import CSV Batch into Live Fleet
                 </button>
@@ -3656,7 +3671,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     <button
                       type="button"
                       onClick={onToggleSimulatedOffline}
-                      className="w-full py-2 bg-[#1d1d1f] text-[#FFCC00] font-bold cursor-pointer"
+                      className="w-full py-2 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#1E1501] font-bold transition-colors cursor-pointer"
                     >
                       {simulatedOffline ? 'Disable Offline Test' : 'Test Offline Mode'}
                     </button>
@@ -3685,7 +3700,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     <button
                       type="button"
                       onClick={onRequestNotifications}
-                      className="w-full py-2 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] font-bold cursor-pointer"
+                      className="w-full py-2 bg-[#9D7110] hover:bg-[#3C2B02] text-white border border-[#3C2B02] font-bold transition-colors cursor-pointer"
                     >
                       Enable Push Alerts
                     </button>
@@ -4006,7 +4021,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#FFCC00] border border-[#1d1d1f] text-[#1d1d1f] font-extrabold cursor-pointer hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#9D7110] border border-[#3C2B02] text-white font-extrabold cursor-pointer hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors">
                     <ImagePlus className="w-4 h-4" />
                     <span>Upload Parcel Pictures</span>
                     <input
@@ -4032,7 +4047,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             : { ...f, parcelImages: [...f.parcelImages, preset.url] }
                         )
                       }
-                      className="px-3 py-2 border border-neutral-300 bg-[#f2f2f2] hover:border-[#1d1d1f] text-[11px] font-bold cursor-pointer"
+                      className="px-3 py-2 border border-neutral-300 bg-[#f2f2f2] hover:border-[#3C2B02] text-[11px] font-bold cursor-pointer"
                     >
                       + {preset.label}
                     </button>
@@ -4058,7 +4073,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       }));
                       setImageUrlInput('');
                     }}
-                    className="px-3.5 py-2 bg-[#1d1d1f] text-[#FFCC00] font-bold text-xs cursor-pointer"
+                    className="px-3.5 py-2 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-bold text-xs transition-colors cursor-pointer"
                   >
                     Attach URL
                   </button>
@@ -4075,7 +4090,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           className="w-full h-24 object-cover"
                         />
                         {idx === 0 && (
-                          <span className="absolute left-1 bottom-1 px-1.5 py-0.5 bg-[#1d1d1f] text-[#FFCC00] text-[10px] font-bold">
+                          <span className="absolute left-1 bottom-1 px-1.5 py-0.5 bg-[#3C2B02] text-[#CD9E34] text-[10px] font-bold">
                             Primary
                           </span>
                         )}
@@ -4088,7 +4103,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             }))
                           }
                           aria-label={`Remove parcel picture ${idx + 1}`}
-                          className="absolute top-1 right-1 w-6 h-6 bg-[#1d1d1f] text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
+                          className="absolute top-1 right-1 w-6 h-6 bg-[#1E1501] text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -4109,7 +4124,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+                className="px-6 py-2.5 bg-[#9D7110] hover:bg-[#3C2B02] text-white text-xs font-extrabold transition-colors cursor-pointer"
               >
                 Create &amp; Arm Geofences
               </button>
@@ -4178,7 +4193,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   onChange={(e) =>
                     setEditDraft((d) => ({ ...d, progress: Number(e.target.value) }))
                   }
-                  className="w-full accent-[#FFCC00] mt-2"
+                  className="w-full accent-[#9D7110] mt-2"
                 />
               </div>
               <div>
@@ -4437,7 +4452,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   Parcel Pictures ({editDraft.parcelImages.length}/6)
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FFCC00] border border-[#1d1d1f] font-bold cursor-pointer">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#9D7110] text-white border border-[#3C2B02] font-bold cursor-pointer hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors">
                     <ImagePlus className="w-3.5 h-3.5" />
                     <span>Upload Photos</span>
                     <input
@@ -4469,7 +4484,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       }));
                       setEditImageUrlInput('');
                     }}
-                    className="px-3 py-1.5 bg-[#1d1d1f] text-[#FFCC00] font-bold cursor-pointer"
+                    className="px-3 py-1.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-bold transition-colors cursor-pointer"
                   >
                     Add
                   </button>
@@ -4493,7 +4508,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             }))
                           }
                           aria-label={`Remove edit photo ${idx + 1}`}
-                          className="absolute top-1 right-1 w-5 h-5 bg-[#1d1d1f] text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
+                          className="absolute top-1 right-1 w-5 h-5 bg-[#1E1501] text-white flex items-center justify-center hover:bg-red-600 cursor-pointer"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -4514,7 +4529,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+                className="px-6 py-2.5 bg-[#9D7110] hover:bg-[#3C2B02] text-white text-xs font-extrabold transition-colors cursor-pointer"
               >
                 Save Changes &amp; Broadcast
               </button>

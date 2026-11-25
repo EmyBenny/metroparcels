@@ -25,7 +25,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ aboutSettings, onNavigate 
             <button
               type="button"
               onClick={() => onNavigate('track')}
-              className="px-6 py-3 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm cursor-pointer"
+              className="px-6 py-3 bg-[#9D7110] text-white font-extrabold text-sm hover:bg-[#3C2B02] transition-colors cursor-pointer"
             >
               See Live Tracking
             </button>
@@ -51,7 +51,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ aboutSettings, onNavigate 
       {/* Values */}
       <div className="grid md:grid-cols-3 gap-6">
         {aboutSettings.values.map((v, idx) => (
-          <div key={`${v.title}-${idx}`} className="bg-white border border-neutral-200 p-7 border-t-4 border-t-[#FFCC00]">
+          <div key={`${v.title}-${idx}`} className="bg-white border border-neutral-200 p-7 border-t-4 border-t-[#9D7110]">
             <h2 className="font-extrabold text-xl text-[#1d1d1f]">{v.title}</h2>
             <p className="text-sm text-[#6b6b70] mt-2 leading-relaxed">{v.desc}</p>
           </div>
@@ -59,12 +59,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ aboutSettings, onNavigate 
       </div>
 
       {/* Our Journey */}
-      <div className="bg-[#1d1d1f] text-white p-8 sm:p-10">
-        <h2 className="font-display text-3xl text-[#FFCC00] mb-6">Our journey</h2>
+      <div className="bg-[#1E1501] text-white p-8 sm:p-10 border-t-4 border-[#9D7110]">
+        <h2 className="font-display text-3xl text-[#CD9E34] mb-6">Our journey</h2>
         <div className="space-y-4">
           {aboutSettings.milestones.map((m, idx) => (
             <div key={`${m.year}-${idx}`} className="flex items-baseline gap-6 pb-4 border-b border-white/10 last:border-0 last:pb-0">
-              <span className="font-display text-2xl text-[#FFCC00] tabular-nums shrink-0">{m.year}</span>
+              <span className="font-display text-2xl text-[#CD9E34] tabular-nums shrink-0">{m.year}</span>
               <span className="text-sm sm:text-base text-neutral-200">{m.text}</span>
             </div>
           ))}

@@ -34,7 +34,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           onClick={() => setShowGuide(true)}
           className={`inline-flex items-center gap-3 px-4 py-2.5 bg-[#1d1d1f] text-white border border-white/20 hover:bg-black transition-colors text-left cursor-pointer whitespace-nowrap shrink-0 ${className}`}
         >
-          <Smartphone className="w-5 h-5 text-[#FFCC00] shrink-0" />
+          <Smartphone className="w-5 h-5 text-[#CD9E34] shrink-0" />
           <span className="leading-tight">
             <small className="block text-[10px] uppercase tracking-wider text-neutral-400">Install on</small>
             <span className="text-sm font-bold">iPhone</span>
@@ -50,7 +50,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           onClick={handleClick}
           className={`inline-flex items-center gap-3 px-4 py-2.5 bg-[#1d1d1f] text-white border border-white/20 hover:bg-black transition-colors text-left cursor-pointer whitespace-nowrap shrink-0 ${className}`}
         >
-          <Download className="w-5 h-5 text-[#FFCC00] shrink-0" />
+          <Download className="w-5 h-5 text-[#CD9E34] shrink-0" />
           <span className="leading-tight">
             <small className="block text-[10px] uppercase tracking-wider text-neutral-400">Install on</small>
             <span className="text-sm font-bold">Android</span>
@@ -65,7 +65,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           type="button"
           onClick={handleClick}
           aria-label="Install Metro Parcel Service app"
-          className={`inline-flex items-center gap-1.5 px-3 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-bold hover:bg-black transition-colors cursor-pointer whitespace-nowrap shrink-0 min-h-[40px] ${className}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 bg-[#1E1501] text-[#CD9E34] border border-[#6D500C] text-xs font-bold hover:bg-[#9D7110] hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0 min-h-[40px] ${className}`}
         >
           <Download className="w-3.5 h-3.5 shrink-0" />
           <span>Install</span>
@@ -78,7 +78,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         <button
           type="button"
           onClick={handleClick}
-          className={`inline-flex items-center justify-center gap-2 border-2 border-[#1d1d1f] px-5 py-3 text-sm font-bold text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${className}`}
+          className={`inline-flex items-center justify-center gap-2 border-2 border-[#1d1d1f] px-5 py-3 text-sm font-bold text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-[#CD9E34] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${className}`}
         >
           <Download className="w-4 h-4 shrink-0" />
           <span>Install the app</span>
@@ -90,7 +90,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       <button
         type="button"
         onClick={handleClick}
-        className={`inline-flex items-center justify-center gap-2 bg-[#1d1d1f] text-white px-5 py-3 text-sm font-bold hover:bg-black hover:text-[#FFCC00] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${className}`}
+        className={`inline-flex items-center justify-center gap-2 bg-[#1d1d1f] text-white px-5 py-3 text-sm font-bold hover:bg-black hover:text-[#CD9E34] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${className}`}
       >
         <Download className="w-4 h-4 shrink-0" />
         <span>Install app</span>
@@ -138,7 +138,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             {isIOS || variant === 'store-ios' ? (
               <ol className="space-y-3 text-sm mb-5">
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     1
                   </span>
                   <span>
@@ -146,7 +146,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     2
                   </span>
                   <span>
@@ -154,7 +154,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     3
                   </span>
                   <span>Tap <strong>Add</strong> to launch Metro Parcel Service offline from your home screen.</span>
@@ -163,7 +163,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             ) : (
               <ol className="space-y-3 text-sm mb-5">
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     1
                   </span>
                   <span>
@@ -171,7 +171,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     2
                   </span>
                   <span>
@@ -179,7 +179,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#FFCC00] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#9D7110] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                     3
                   </span>
                   <span>
@@ -192,7 +192,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             <button
               type="button"
               onClick={() => setShowGuide(false)}
-              className="w-full py-3 bg-[#1d1d1f] text-white font-bold text-sm hover:bg-black hover:text-[#FFCC00] transition-colors cursor-pointer"
+              className="w-full py-3 bg-[#1d1d1f] text-white font-bold text-sm hover:bg-black hover:text-[#CD9E34] transition-colors cursor-pointer"
             >
               Got it
             </button>

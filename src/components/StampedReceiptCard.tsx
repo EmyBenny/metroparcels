@@ -185,7 +185,7 @@ export const StampedReceiptCard: React.FC<StampedReceiptCardProps> = ({
           <button
             type="button"
             onClick={() => window.print()}
-            className="no-print px-3.5 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+            className="no-print px-3.5 py-2 bg-[#1d1d1f] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white transition-colors text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print / Save PDF</span>

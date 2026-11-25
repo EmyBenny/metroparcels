@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Clock,
+  ExternalLink,
   Mail,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Phone,
   Plus,
@@ -169,8 +171,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             onClick={() => setActiveTab('new')}
             className={`px-4 py-2.5 text-xs font-extrabold border inline-flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'new'
-                ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
-                : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#1d1d1f]'
+                ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
+                : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#3C2B02]'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -181,8 +183,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             onClick={() => setActiveTab('tickets')}
             className={`px-4 py-2.5 text-xs font-extrabold border inline-flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'tickets'
-                ? 'bg-[#FFCC00] text-[#1d1d1f] border-[#1d1d1f]'
-                : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#1d1d1f]'
+                ? 'bg-[#9D7110] text-white border-[#3C2B02]'
+                : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#3C2B02]'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
@@ -192,8 +194,38 @@ export const ContactPage: React.FC<ContactPageProps> = ({
       </div>
 
       <div className="grid lg:grid-cols-12 gap-8 items-start">
-        {/* Left 4 cols: Live Admin-Controlled Contact Info + Ticket Code Lookup */}
+        {/* Left 4 cols: Live Admin-Controlled Contact Info + WhatsApp + Ticket Code Lookup */}
         <div className="lg:col-span-4 space-y-4">
+          {/* WhatsApp Live Chat Direct Card */}
+          <div className="bg-[#9D7110] text-white border-2 border-[#3C2B02] p-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0 border border-white/40">
+                <MessageCircle className="w-5 h-5" />
+              </span>
+              <div>
+                <h2 className="font-extrabold text-sm uppercase tracking-wider">
+                  WhatsApp Live Chat
+                </h2>
+                <p className="font-mono-tabular text-sm font-bold text-[#F2E9D4] mt-0.5">
+                  {contactSettings.whatsapp || '+447447484073'}
+                </p>
+                <p className="text-xs text-[#F2E9D4]/90 mt-1 leading-relaxed">
+                  Chat directly with our parcel dispatch team 24/7 on WhatsApp.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://wa.me/${(contactSettings.whatsapp || '+447447484073').replace(/[^0-9]/g, '') || '447447484073'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 px-4 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-extrabold text-xs inline-flex items-center justify-center gap-2 transition-colors border border-[#1E1501]"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat on WhatsApp Now</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
           <div className="bg-white border border-neutral-200 p-5 flex gap-4">
             <Phone className="w-5 h-5 text-[#1d1d1f] shrink-0 mt-0.5" />
             <div>
@@ -230,12 +262,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             </div>
           </div>
 
-          <div className="bg-[#1d1d1f] text-white p-5 flex gap-4">
-            <Clock className="w-5 h-5 text-[#FFCC00] shrink-0 mt-0.5" />
+          <div className="bg-[#3C2B02] text-white p-5 flex gap-4 border border-[#6D500C]">
+            <Clock className="w-5 h-5 text-[#CD9E34] shrink-0 mt-0.5" />
             <div>
-              <h2 className="font-extrabold text-sm text-[#FFCC00]">Support hours</h2>
-              <p className="text-xs text-neutral-300 mt-1">{contactSettings.supportHours}</p>
-              <p className="text-xs text-neutral-300 mt-0.5">{contactSettings.salesHours}</p>
+              <h2 className="font-extrabold text-sm text-[#CD9E34]">Support hours</h2>
+              <p className="text-xs text-[#F2E9D4] mt-1">{contactSettings.supportHours}</p>
+              <p className="text-xs text-[#F2E9D4] mt-0.5">{contactSettings.salesHours}</p>
             </div>
           </div>
 
@@ -263,7 +295,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               </div>
               <button
                 type="submit"
-                className="px-3.5 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+                className="px-3.5 py-2 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white transition-colors text-xs font-extrabold cursor-pointer"
               >
                 Open
               </button>
@@ -411,7 +443,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               <button
                 type="submit"
                 disabled={sending}
-                className="px-7 py-3.5 bg-[#1d1d1f] text-[#FFCC00] font-extrabold text-sm hover:bg-black transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
+                className="px-7 py-3.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-extrabold text-sm transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
               >
                 <Send className="w-4 h-4" />
                 <span>{sending ? 'Creating Ticket...' : 'Submit Ticket & Start Live Chat'}</span>
@@ -431,7 +463,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('new')}
-                    className="px-5 py-2.5 bg-[#FFCC00] text-[#1d1d1f] border border-[#1d1d1f] text-xs font-extrabold cursor-pointer"
+                    className="px-5 py-2.5 bg-[#9D7110] text-white border border-[#3C2B02] text-xs font-extrabold cursor-pointer"
                   >
                     Create Your First Ticket
                   </button>
@@ -460,7 +492,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                           type="button"
                           onClick={() => setSelectedTicketId(t.id)}
                           className={`w-full text-left p-3.5 space-y-1 transition-colors cursor-pointer ${
-                            active ? 'bg-[#FFF6CC] border-l-4 border-l-[#1d1d1f]' : 'bg-white hover:bg-neutral-50'
+                            active ? 'bg-[#F2E9D4] border-l-4 border-l-[#3C2B02]' : 'bg-white hover:bg-neutral-50'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2 text-[11px]">
@@ -473,7 +505,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                                   ? 'bg-emerald-100 text-emerald-900'
                                   : t.status === 'in_progress'
                                   ? 'bg-blue-100 text-blue-900'
-                                  : 'bg-[#FFE68A] text-[#1d1d1f]'
+                                  : 'bg-[#CD9E34] text-[#1E1501]'
                               }`}
                             >
                               {statusLabel(t.status)}
@@ -495,7 +527,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                       <div className="p-4 border-b border-neutral-200 flex flex-wrap items-center justify-between gap-2 bg-white">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono-tabular text-xs font-extrabold px-2 py-0.5 bg-[#1d1d1f] text-[#FFCC00]">
+                            <span className="font-mono-tabular text-xs font-extrabold px-2 py-0.5 bg-[#3C2B02] text-[#CD9E34]">
                               {selectedTicket.ticketCode}
                             </span>
                             <span className="text-xs font-bold text-[#6b6b70]">
@@ -528,8 +560,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                               <div
                                 className={`max-w-[85%] p-3.5 text-xs space-y-1 ${
                                   isVisitor
-                                    ? 'bg-[#1d1d1f] text-white'
-                                    : 'bg-[#FFF6CC] border border-[#1d1d1f] text-[#1d1d1f]'
+                                    ? 'bg-[#3C2B02] text-white'
+                                    : 'bg-[#F2E9D4] border border-[#3C2B02] text-[#1E1501]'
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-4 text-[10px] opacity-80 font-bold uppercase tracking-wider">
@@ -562,12 +594,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder="Write a real-time reply to Metro Parcel Service support..."
-                          className="flex-1 border border-neutral-300 px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#1d1d1f]"
+                          className="flex-1 border border-neutral-300 px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#3C2B02]"
                         />
                         <button
                           type="submit"
                           disabled={sendingReply || !replyText.trim()}
-                          className="px-5 py-2.5 bg-[#1d1d1f] text-[#FFCC00] font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="px-5 py-2.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white transition-colors font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Reply</span>

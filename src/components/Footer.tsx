@@ -8,8 +8,11 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ contactSettings, onNavigate }) => {
+  const whatsappRaw = contactSettings.whatsapp || '+447447484073';
+  const whatsappDigits = whatsappRaw.replace(/[^0-9]/g, '') || '447447484073';
+
   return (
-    <footer className="bg-[#1d1d1f] text-white pt-16 pb-24 lg:pb-12 no-print">
+    <footer className="bg-[#1E1501] text-white pt-16 pb-24 lg:pb-12 no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-white/10">
           <div className="col-span-2">
@@ -18,33 +21,33 @@ export const Footer: React.FC<FooterProps> = ({ contactSettings, onNavigate }) =
               onClick={() => onNavigate('home')}
               className="inline-flex items-center gap-2.5 text-white font-extrabold text-xl tracking-tight cursor-pointer"
             >
-              <span className="w-9 h-9 rounded-lg bg-[#FFCC00] text-[#1d1d1f] flex items-center justify-center font-display text-lg">
+              <span className="w-9 h-9 rounded-lg bg-[#9D7110] text-white flex items-center justify-center font-display text-lg">
                 M
               </span>
               <span>Metro Parcel Service</span>
             </button>
-            <p className="mt-4 text-sm text-neutral-400 max-w-xs leading-relaxed">
+            <p className="mt-4 text-sm text-neutral-300 max-w-xs leading-relaxed">
               Delivery, tracked to the metre. Track parcels, view stamped digital receipts, and follow live GPS geofence alerts — even offline.
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FFCC00] mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#CD9E34] mb-4">
               Tracking & Fleet
             </h4>
             <ul className="space-y-2.5 text-sm text-neutral-300">
               <li>
-                <button type="button" onClick={() => onNavigate('track')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('track')} className="hover:text-[#CD9E34] cursor-pointer">
                   Track a parcel
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('analytics')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('analytics')} className="hover:text-[#CD9E34] cursor-pointer">
                   Route playback
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('services')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('services')} className="hover:text-[#CD9E34] cursor-pointer">
                   Delivery services
                 </button>
               </li>
@@ -52,27 +55,27 @@ export const Footer: React.FC<FooterProps> = ({ contactSettings, onNavigate }) =
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FFCC00] mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#CD9E34] mb-4">
               Company
             </h4>
             <ul className="space-y-2.5 text-sm text-neutral-300">
               <li>
-                <button type="button" onClick={() => onNavigate('about')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('about')} className="hover:text-[#CD9E34] cursor-pointer">
                   About us
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('business')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('business')} className="hover:text-[#CD9E34] cursor-pointer">
                   Business
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('contact')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('contact')} className="hover:text-[#CD9E34] cursor-pointer">
                   Contact
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => onNavigate('help')} className="hover:text-[#FFCC00] cursor-pointer">
+                <button type="button" onClick={() => onNavigate('help')} className="hover:text-[#CD9E34] cursor-pointer">
                   Help centre
                 </button>
               </li>
@@ -80,14 +83,22 @@ export const Footer: React.FC<FooterProps> = ({ contactSettings, onNavigate }) =
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#FFCC00] mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#CD9E34] mb-4">
               Get in touch
             </h4>
-            <p className="text-xs text-neutral-400 leading-relaxed mb-2">
+            <p className="text-xs text-neutral-300 leading-relaxed mb-2">
               {contactSettings.address}
             </p>
             <p className="text-xs text-neutral-300 font-mono-tabular mb-1">{contactSettings.phone}</p>
-            <p className="text-xs text-neutral-300">{contactSettings.email}</p>
+            <p className="text-xs text-neutral-300 mb-2">{contactSettings.email}</p>
+            <a
+              href={`https://wa.me/${whatsappDigits}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#25D366] hover:text-[#CD9E34] transition-colors font-mono-tabular"
+            >
+              <span>WhatsApp Live Chat: {whatsappRaw}</span>
+            </a>
           </div>
         </div>
 

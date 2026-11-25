@@ -13,7 +13,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => {
       title: 'Domestic parcels',
       desc: 'Next-day across the country',
       icon: Package,
-      accent: 'bg-[#FFCC00] text-[#1d1d1f]',
+      accent: 'bg-[#9D7110] text-white',
       bullets: [
         'Collection from your door or drop-off point',
         'Up to 30 kg per parcel',
@@ -58,7 +58,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => {
       title: 'Freight & pallets',
       desc: 'Heavy and bulky goods',
       icon: Truck,
-      accent: 'bg-[#1d1d1f] text-[#FFCC00]',
+      accent: 'bg-[#3C2B02] text-[#CD9E34]',
       bullets: [
         'Full and part pallets',
         'Tail-lift vehicles available',
@@ -112,7 +112,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => {
               <button
                 type="button"
                 onClick={tier.action}
-                className="mt-7 w-full py-3 bg-[#FFCC00] hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm transition-colors cursor-pointer"
+                className="mt-7 w-full py-3 bg-[#9D7110] hover:bg-[#3C2B02] text-white font-extrabold text-sm transition-colors cursor-pointer"
               >
                 {tier.cta}
               </button>

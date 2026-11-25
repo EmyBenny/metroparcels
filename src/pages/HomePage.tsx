@@ -122,7 +122,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div>
       {/* HERO SECTION */}
-      <section className="bg-[#FFCC00] pt-10 pb-16 lg:pt-14 lg:pb-24 relative overflow-hidden">
+      <section className="bg-[#9D7110] pt-10 pb-16 lg:pt-14 lg:pb-24 relative overflow-hidden">
         {/* Moving Faded Logistics Backdrop (Flights, Cargo Hubs, Fleet & Parcels) */}
         <div
           aria-hidden="true"
@@ -151,13 +151,13 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
             );
           })}
-          <div className="absolute inset-0 z-[3] bg-gradient-to-b from-[#FFCC00]/26 via-[#FFCC00]/8 to-[#FFCC00]/22 lg:bg-gradient-to-r lg:from-[#FFCC00]/40 lg:via-[#FFCC00]/14 lg:to-[#FFCC00]/4" />
+          <div className="absolute inset-0 z-[3] bg-gradient-to-b from-[#9D7110]/42 via-[#9D7110]/16 to-[#9D7110]/34 lg:bg-gradient-to-r lg:from-[#9D7110]/52 lg:via-[#9D7110]/20 lg:to-[#9D7110]/8" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-7">
-              <h1 className="font-display uppercase text-[#1d1d1f] text-5xl sm:text-6xl lg:text-7xl leading-[0.88] tracking-tight text-balance [text-shadow:0_2px_18px_rgba(255,204,0,0.98),0_1px_4px_rgba(255,204,0,0.95)]">
+              <h1 className="font-display uppercase text-white text-5xl sm:text-6xl lg:text-7xl leading-[0.88] tracking-tight text-balance [text-shadow:0_2px_18px_rgba(30,21,1,0.78),0_1px_4px_rgba(30,21,1,0.68)]">
                 <span className="block">{slide.line1}</span>
                 <span
                   className={`inline-block ${slide.bandColor} text-white px-3 py-1 my-2 -rotate-1`}
@@ -166,7 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </span>
                 <span className="block">{slide.line3}</span>
               </h1>
-              <p className="mt-5 text-base sm:text-xl text-[#1d1d1f] max-w-xl font-bold leading-relaxed [text-shadow:0_1px_14px_rgba(255,204,0,0.98),0_1px_4px_rgba(255,204,0,0.95)]">
+              <p className="mt-5 text-base sm:text-xl text-[#F2E9D4] max-w-xl font-bold leading-relaxed [text-shadow:0_1px_12px_rgba(30,21,1,0.85),0_1px_3px_rgba(30,21,1,0.72)]">
                 {slide.copy}
               </p>
 
@@ -174,14 +174,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigate('track')}
-                  className="px-6 py-3.5 bg-[#1d1d1f] text-white font-bold text-sm hover:bg-black hover:text-[#FFCC00] transition-colors cursor-pointer"
+                  className="px-6 py-3.5 bg-[#1E1501] text-white font-bold text-sm hover:bg-black hover:text-[#CD9E34] transition-colors cursor-pointer"
                 >
                   Open Live GPS Map
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate('analytics')}
-                  className="px-6 py-3.5 bg-[#FFCC00]/92 backdrop-blur-[2px] border-2 border-[#1d1d1f] text-[#1d1d1f] font-bold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
+                  className="px-6 py-3.5 bg-[#9D7110]/85 backdrop-blur-[2px] border-2 border-white text-white font-bold text-sm hover:bg-[#1E1501] hover:border-[#1E1501] hover:text-[#CD9E34] transition-colors cursor-pointer"
                 >
                   Route Playback & Analytics
                 </button>
@@ -197,8 +197,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onClick={() => setSlideIdx(idx)}
                     className={`h-1.5 transition-all cursor-pointer ${
                       idx === slideIdx
-                        ? 'w-14 bg-[#1d1d1f]'
-                        : 'w-8 bg-[#1d1d1f]/25 hover:bg-[#1d1d1f]/50'
+                        ? 'w-14 bg-white'
+                        : 'w-8 bg-white/35 hover:bg-white/65'
                     }`}
                   />
                 ))}
@@ -207,12 +207,12 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             {/* Dedicated Parcel Tracking Widget */}
             <div className="lg:col-span-5">
-              <div className="bg-white shadow-2xl border-2 border-[#1d1d1f]">
-                <div className="bg-[#1d1d1f] text-[#FFCC00] px-6 py-4 flex items-center justify-between">
-                  <span className="font-extrabold text-sm uppercase tracking-wider">
+              <div className="bg-white shadow-2xl border-2 border-[#1E1501]">
+                <div className="bg-[#3C2B02] text-[#CD9E34] px-6 py-4 flex items-center justify-between">
+                  <span className="font-extrabold text-sm uppercase tracking-wider text-white">
                     Metro Parcel Service Tracker
                   </span>
-                  <span className="text-[11px] font-mono-tabular text-neutral-300">
+                  <span className="text-[11px] font-mono-tabular text-[#F2E9D4]">
                     GPS + Receipt + Return
                   </span>
                 </div>
@@ -240,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           value={trackInput}
                           onChange={(e) => setTrackInput(e.target.value)}
                           placeholder="Enter your tracking or receipt code"
-                          className="w-full border-2 border-neutral-300 pl-10 pr-4 py-3 font-mono-tabular text-sm focus:outline-none focus:border-[#1d1d1f]"
+                          className="w-full border-2 border-neutral-300 pl-10 pr-4 py-3 font-mono-tabular text-sm focus:outline-none focus:border-[#9D7110]"
                         />
                       </div>
                     </div>
@@ -251,7 +251,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 bg-[#FFCC00] hover:bg-[#1d1d1f] hover:text-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm transition-colors cursor-pointer"
+                      className="w-full py-3.5 bg-[#9D7110] hover:bg-[#3C2B02] hover:text-[#CD9E34] text-white font-extrabold text-sm transition-colors cursor-pointer"
                     >
                       Track your parcel
                     </button>
@@ -264,7 +264,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* MARQUEE STRIP */}
-      <div className="bg-[#1d1d1f] text-[#FFCC00] py-4 overflow-hidden select-none">
+      <div className="bg-[#1E1501] text-[#CD9E34] py-4 overflow-hidden select-none">
         <div className="animate-tp-marquee font-display uppercase text-lg tracking-wide">
           {[0, 1].map((dup) => (
             <div key={dup} className="inline-flex items-center">
@@ -310,7 +310,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => onNavigate('analytics')}
             className="bg-white p-8 text-left border-2 border-transparent hover:border-[#1d1d1f] hover:shadow-[8px_8px_0_#1d1d1f] transition-all cursor-pointer group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-[#FFCC00] text-[#1d1d1f] flex items-center justify-center mb-5">
+            <div className="w-14 h-14 rounded-2xl bg-[#9D7110] text-white flex items-center justify-center mb-5">
               <LineChart className="w-6 h-6" />
             </div>
             <h2 className="text-2xl font-extrabold text-[#1d1d1f] flex items-center justify-between">
@@ -360,7 +360,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <ul className="space-y-5 pt-2">
               <li className="flex gap-4">
-                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center shrink-0">
+                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#CD9E34] flex items-center justify-center shrink-0">
                   <Truck className="w-5 h-5" />
                 </span>
                 <div>
@@ -371,7 +371,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
               </li>
               <li className="flex gap-4">
-                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center shrink-0">
+                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#CD9E34] flex items-center justify-center shrink-0">
                   <QrCode className="w-5 h-5" />
                 </span>
                 <div>
@@ -382,7 +382,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
               </li>
               <li className="flex gap-4">
-                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center shrink-0">
+                <span className="w-12 h-12 rounded-xl bg-[#1d1d1f] text-[#CD9E34] flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </span>
                 <div>
@@ -398,7 +398,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 type="button"
                 onClick={() => onNavigate('track')}
-                className="px-6 py-3 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
+                className="px-6 py-3 bg-[#9D7110] text-white font-extrabold text-sm hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors cursor-pointer"
               >
                 Track a parcel
               </button>
@@ -488,8 +488,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             ['03', 'Track live on GPS', 'Follow every hop on the live map with arrival & deviation push notifications.'],
             ['04', 'Receipt & delivery', 'Access your stamped digital receipt, proof photo, and return details right on your tracking page.'],
           ].map(([num, title, desc]) => (
-            <div key={num} className="bg-white p-7 border-t-4 border-[#FFCC00] relative">
-              <span className="font-display text-5xl text-[#FFE68A] absolute right-5 top-4 select-none">
+            <div key={num} className="bg-white p-7 border-t-4 border-[#9D7110] relative">
+              <span className="font-display text-5xl text-[#F2E9D4] absolute right-5 top-4 select-none">
                 {num}
               </span>
               <h3 className="font-extrabold text-lg text-[#1d1d1f] mt-8">{title}</h3>
@@ -500,7 +500,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* KPI STATS BAND */}
-      <section className="bg-[#1d1d1f] text-white py-14">
+      <section className="bg-[#1E1501] text-white py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-5 gap-8 text-center lg:text-left">
           {[
             ['1,280,001', 'Parcels delivered'],
@@ -510,7 +510,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             ['4.9★', 'App rating'],
           ].map(([val, label]) => (
             <div key={label}>
-              <div className="font-display text-3xl sm:text-4xl text-[#FFCC00] tabular-nums">{val}</div>
+              <div className="font-display text-3xl sm:text-4xl text-[#CD9E34] tabular-nums">{val}</div>
               <div className="mt-1.5 text-xs sm:text-sm text-neutral-300 font-medium">{label}</div>
             </div>
           ))}
@@ -521,7 +521,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="bg-[#1d1d1f] text-white p-8 sm:p-12 grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-[#FFCC00]">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-[#CD9E34]">
               Metro Parcel Service for Business
             </span>
             <h2 className="font-display text-3xl sm:text-4xl mt-2 text-balance">
@@ -534,7 +534,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 type="button"
                 onClick={() => onNavigate('business')}
-                className="px-6 py-3 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm hover:bg-white transition-colors cursor-pointer"
+                className="px-6 py-3 bg-[#9D7110] text-white font-extrabold text-sm hover:bg-[#CD9E34] hover:text-[#1E1501] transition-colors cursor-pointer"
               >
                 Take me there
               </button>
@@ -549,7 +549,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <div className="lg:col-span-4 grid grid-cols-2 gap-3 text-center">
             <div className="bg-[#2b2b2e] p-4">
-              <div className="font-display text-2xl text-[#FFCC00] tabular-nums">2,418</div>
+              <div className="font-display text-2xl text-[#CD9E34] tabular-nums">2,418</div>
               <div className="text-xs text-neutral-300 mt-1">Monthly parcels</div>
             </div>
             <div className="bg-[#2b2b2e] p-4">
@@ -577,7 +577,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {REVIEWS.map((r) => (
             <div key={r.name} className="bg-white p-6 border border-neutral-200 flex flex-col justify-between">
               <div>
-                <div className="flex gap-1 text-[#FFCC00] mb-3" aria-label="5 stars">
+                <div className="flex gap-1 text-[#9D7110] mb-3" aria-label="5 stars">
                   {[0, 1, 2, 3, 4].map((s) => (
                     <Star key={s} className="w-4 h-4 fill-current" />
                   ))}
@@ -702,23 +702,23 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* READY TO TRACK CTA */}
-      <section className="bg-[#FFCC00] py-12">
+      <section className="bg-[#9D7110] py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <h2 className="font-display uppercase text-3xl sm:text-5xl text-[#1d1d1f]">
+          <h2 className="font-display uppercase text-3xl sm:text-5xl text-white">
             Ready to track?
           </h2>
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => onNavigate('track')}
-              className="px-6 py-3.5 bg-[#1d1d1f] text-white font-extrabold text-sm hover:bg-black hover:text-[#FFCC00] transition-colors cursor-pointer"
+              className="px-6 py-3.5 bg-[#1E1501] text-white font-extrabold text-sm hover:bg-black hover:text-[#CD9E34] transition-colors cursor-pointer"
             >
               Track a parcel
             </button>
             <button
               type="button"
               onClick={() => onNavigate('contact')}
-              className="px-6 py-3.5 border-2 border-[#1d1d1f] text-[#1d1d1f] font-extrabold text-sm hover:bg-[#1d1d1f] hover:text-[#FFCC00] transition-colors cursor-pointer"
+              className="px-6 py-3.5 border-2 border-white text-white font-extrabold text-sm hover:bg-[#1E1501] hover:border-[#1E1501] hover:text-[#CD9E34] transition-colors cursor-pointer"
             >
               Contact support
             </button>

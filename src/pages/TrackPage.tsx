@@ -153,14 +153,14 @@ export const TrackPage: React.FC<TrackPageProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 lg:pb-12">
       {isAdminAuthenticated && onBackToAdmin && (
-        <div className="mb-4 bg-[#1d1d1f] text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-[#FFCC00]">
+        <div className="mb-4 bg-[#3C2B02] text-[#F2E9D4] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs border-b-2 border-[#9D7110]">
+          <span className="font-bold text-[#CD9E34]">
             Admin Session Active — Tracking live parcel telemetry
           </span>
           <button
             type="button"
             onClick={onBackToAdmin}
-            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FFCC00] text-[#1d1d1f] font-extrabold hover:bg-white transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#9D7110] text-white font-extrabold hover:bg-[#CD9E34] hover:text-[#1E1501] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Admin Portal</span>
@@ -193,7 +193,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-[#1d1d1f] text-[#FFCC00] font-bold text-sm hover:bg-black transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-5 py-2.5 bg-[#9D7110] text-white font-bold text-sm hover:bg-[#3C2B02] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               {lookingUp ? 'Searching…' : 'Track now'}
             </button>
@@ -218,8 +218,8 @@ export const TrackPage: React.FC<TrackPageProps> = ({
 
       {!shipment ? (
         <div className="bg-white border border-neutral-200 p-8 sm:p-12 text-center max-w-2xl mx-auto">
-          <div className="w-14 h-14 mx-auto bg-[#FFCC00] border border-[#1d1d1f] flex items-center justify-center mb-4">
-            <Package className="w-7 h-7 text-[#1d1d1f]" />
+          <div className="w-14 h-14 mx-auto bg-[#9D7110] border border-[#3C2B02] flex items-center justify-center mb-4">
+            <Package className="w-7 h-7 text-white" />
           </div>
           <h2 className="font-display text-2xl text-[#1d1d1f]">
             {lookingUp
@@ -239,16 +239,16 @@ export const TrackPage: React.FC<TrackPageProps> = ({
         {/* Left 6 cols: Live Map & Read-only Telemetry */}
         <div className="lg:col-span-6 space-y-5">
           {/* Live Telemetry Status Strip */}
-          <div className="bg-[#1d1d1f] text-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-[#3C2B02] text-[#F2E9D4] px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#9D7110]">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00C853] animate-pulse shrink-0" />
               <span className="font-bold">LIVE</span>
-              <span className="text-neutral-400">·</span>
+              <span className="text-[#CD9E34]/60">·</span>
               <span className="font-medium">{shipment.current.location}</span>
             </div>
-            <div className="flex items-center gap-3 text-xs font-mono-tabular text-[#FFCC00]">
+            <div className="flex items-center gap-3 text-xs font-mono-tabular text-[#CD9E34]">
               <span>{shipment.progress}% complete</span>
-              <span className="text-neutral-500">|</span>
+              <span className="text-[#CD9E34]/50">|</span>
               <span>{formatDistance(distToDestMeters)} to dest</span>
             </div>
           </div>
@@ -284,7 +284,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
                 onClick={() => setShowGeofences((v) => !v)}
                 className={`px-3 py-1.5 text-xs font-bold border cursor-pointer ${
                   showGeofences
-                    ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                    ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                     : 'bg-white text-[#1d1d1f] border-neutral-300'
                 }`}
               >
@@ -332,7 +332,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
           {/* Courier Contact Card */}
           <div className="bg-white border border-neutral-200 p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-[#1d1d1f] text-[#FFCC00] font-extrabold text-sm flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-full bg-[#3C2B02] text-[#CD9E34] font-extrabold text-sm flex items-center justify-center shrink-0">
                 {shipment.courier.name
                   .split(' ')
                   .map((n) => n[0])
@@ -350,7 +350,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               <a
                 href={`tel:${shipment.courier.phone}`}
                 aria-label={`Call ${shipment.courier.name}`}
-                className="w-10 h-10 bg-[#f2f2f2] hover:bg-[#FFCC00] flex items-center justify-center text-[#1d1d1f] transition-colors"
+                className="w-10 h-10 bg-[#f2f2f2] hover:bg-[#9D7110] hover:text-white flex items-center justify-center text-[#1d1d1f] transition-colors"
               >
                 <Phone className="w-4 h-4" />
               </a>
@@ -358,7 +358,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
                 type="button"
                 onClick={() => setCourierChatOpen(true)}
                 aria-label="Chat with courier"
-                className="w-10 h-10 bg-[#1d1d1f] text-[#FFCC00] hover:bg-black flex items-center justify-center transition-colors cursor-pointer"
+                className="w-10 h-10 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
               </button>
@@ -387,7 +387,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
                     ? 'bg-[#FF5A1F] text-white'
                     : shipment.status === 'Delivered'
                     ? 'bg-[#00C853] text-white'
-                    : 'bg-[#FFCC00] text-[#1d1d1f]'
+                    : 'bg-[#9D7110] text-white'
                 }`}
               >
                 {shipment.status}
@@ -417,14 +417,14 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenPlayback(shipment.tracking_no)}
-                className="flex-1 px-3 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-bold hover:bg-black transition-colors cursor-pointer whitespace-nowrap"
+                className="flex-1 px-3 py-2 bg-[#3C2B02] text-[#CD9E34] text-xs font-bold hover:bg-[#1E1501] transition-colors cursor-pointer whitespace-nowrap"
               >
                 Route Playback
               </button>
               <button
                 type="button"
                 onClick={() => setDetailTab('receipt')}
-                className="flex-1 px-3 py-2 border border-[#1d1d1f] text-[#1d1d1f] text-xs font-bold hover:bg-[#FFCC00] transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                className="flex-1 px-3 py-2 border border-[#3C2B02] text-[#3C2B02] text-xs font-bold hover:bg-[#9D7110] hover:text-white hover:border-[#9D7110] transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Receipt className="w-3.5 h-3.5" />
                 <span>Parcel Receipt</span>
@@ -687,11 +687,11 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               {/* TAB 4: PARCEL RETURN DETAILS (READ-ONLY FOR TRACKED PARCEL) */}
               {detailTab === 'return' && (
                 <div className="space-y-4 text-xs">
-                  <div className="p-4 bg-[#FFF6CC] border border-[#1d1d1f] space-y-2">
-                    <span className="font-extrabold text-sm text-[#1d1d1f] block">
+                  <div className="p-4 bg-[#F2E9D4] border border-[#9D7110] space-y-2">
+                    <span className="font-extrabold text-sm text-[#1E1501] block">
                       Return Eligibility · #{shipment.tracking_no}
                     </span>
-                    <p className="text-[#1d1d1f]/85 leading-relaxed">
+                    <p className="text-[#1E1501]/85 leading-relaxed">
                       Parcels handled by <strong>Metro Parcel Service</strong> can be returned within the sender’s approved 14–30 day return window at any of our 16,000+ 24/7 drop points.
                     </p>
                   </div>
@@ -730,10 +730,10 @@ export const TrackPage: React.FC<TrackPageProps> = ({
       {courierChatOpen && shipment && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
           <div className="w-full sm:max-w-md bg-white border-2 border-[#1d1d1f] shadow-2xl flex flex-col max-h-[80vh]">
-            <div className="px-4 py-3 bg-[#1d1d1f] text-white flex items-center justify-between">
+            <div className="px-4 py-3 bg-[#3C2B02] text-[#F2E9D4] flex items-center justify-between">
               <div>
                 <p className="font-bold text-sm">{shipment.courier.name}</p>
-                <p className="text-[11px] text-[#FFCC00]">{shipment.courier.vehicle}</p>
+                <p className="text-[11px] text-[#CD9E34]">{shipment.courier.vehicle}</p>
               </div>
               <button
                 type="button"
@@ -768,7 +768,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-xs cursor-pointer"
+                className="px-4 py-2 bg-[#9D7110] hover:bg-[#3C2B02] text-white font-extrabold text-xs transition-colors cursor-pointer"
               >
                 Send
               </button>
@@ -790,7 +790,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
               type="button"
               onClick={() => setLightboxImage(null)}
               aria-label="Close photo preview"
-              className="absolute top-3 right-3 w-9 h-9 bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center cursor-pointer z-10"
+              className="absolute top-3 right-3 w-9 h-9 bg-[#3C2B02] text-[#CD9E34] flex items-center justify-center cursor-pointer z-10"
             >
               <X className="w-5 h-5" />
             </button>

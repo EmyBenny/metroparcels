@@ -59,16 +59,16 @@ export const AlertsDrawer: React.FC<AlertsDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs no-print" role="dialog" aria-modal="true">
       <div className="w-full max-w-md bg-white h-full flex flex-col border-l-2 border-[#1d1d1f] shadow-2xl">
-        <div className="px-5 py-4 bg-[#FFCC00] border-b border-black/10 flex items-center justify-between">
+        <div className="px-5 py-4 bg-[#3C2B02] text-[#F2E9D4] border-b border-[#6D500C] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Bell className="w-5 h-5 text-[#1d1d1f]" />
-            <h2 className="font-extrabold text-base text-[#1d1d1f]">Push Alerts & Offline Sync</h2>
+            <Bell className="w-5 h-5 text-[#CD9E34]" />
+            <h2 className="font-extrabold text-base text-white">Push Alerts & Offline Sync</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close alerts drawer"
-            className="w-10 h-10 flex items-center justify-center hover:bg-black/10 cursor-pointer"
+            className="w-10 h-10 flex items-center justify-center text-[#F2E9D4] hover:bg-white/15 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -94,7 +94,7 @@ export const AlertsDrawer: React.FC<AlertsDrawerProps> = ({
               className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer ${
                 notificationPermission === 'granted'
                   ? 'bg-emerald-100 text-emerald-800 cursor-default'
-                  : 'bg-[#1d1d1f] text-[#FFCC00] hover:bg-black'
+                  : 'bg-[#1d1d1f] text-[#CD9E34] hover:bg-black'
               }`}
             >
               {notificationPermission === 'granted' ? 'Enabled' : 'Enable Push'}
@@ -171,8 +171,8 @@ export const AlertsDrawer: React.FC<AlertsDrawerProps> = ({
                   onSelectShipment(al.trackingNo);
                   onClose();
                 }}
-                className={`w-full text-left p-4 hover:bg-[#FFF6CC]/60 transition-colors flex gap-3 cursor-pointer ${
-                  !al.read ? 'bg-[#FFF6CC]/35' : 'bg-white'
+                className={`w-full text-left p-4 hover:bg-[#F2E9D4]/75 transition-colors flex gap-3 cursor-pointer ${
+                  !al.read ? 'bg-[#F2E9D4]/45' : 'bg-white'
                 }`}
               >
                 <div

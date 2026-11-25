@@ -37,6 +37,7 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AlertsDrawer } from './components/AlertsDrawer';
+import { WhatsAppLiveChatWidget } from './components/WhatsAppLiveChatWidget';
 import { HomePage } from './pages/HomePage';
 import { TrackPage } from './pages/TrackPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -992,7 +993,7 @@ export default function App() {
 
       {/* Non-Intrusive Offline Mode Strip */}
       {!isOnline && (
-        <div className="bg-[#1d1d1f] text-[#FFCC00] px-4 py-2 text-xs font-bold flex items-center justify-center gap-3 no-print">
+        <div className="bg-[#3C2B02] text-[#CD9E34] px-4 py-2 text-xs font-bold flex items-center justify-center gap-3 no-print">
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
           <span>
             Offline Mode Active — Cached routes, receipts & vector maps available.{' '}
@@ -1002,7 +1003,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setSimulatedOffline(false)}
-              className="underline text-white hover:text-[#FFCC00] cursor-pointer"
+              className="underline text-white hover:text-[#CD9E34] cursor-pointer"
             >
               Restore Online
             </button>
@@ -1086,7 +1087,11 @@ export default function App() {
           <AboutPage aboutSettings={siteSettings.about} onNavigate={navigate} />
         )}
         {currentPage === 'help' && (
-          <HelpPage helpSettings={siteSettings.help} onNavigate={navigate} />
+          <HelpPage
+            helpSettings={siteSettings.help}
+            whatsappNumber={siteSettings.contact.whatsapp}
+            onNavigate={navigate}
+          />
         )}
         {currentPage === 'contact' && (
           <ContactPage
@@ -1135,11 +1140,18 @@ export default function App() {
 
       {!isAdminRoute && <Footer contactSettings={siteSettings.contact} onNavigate={navigate} />}
 
+      {!isAdminRoute && (
+        <WhatsAppLiveChatWidget
+          whatsappNumber={siteSettings.contact.whatsapp}
+          selectedTrackingNo={selectedTrackingNo}
+        />
+      )}
+
       {/* Real-Time Support Reply Notification Toast for Visitors */}
       {supportToast && (
         <div
           role="status"
-          className="fixed bottom-16 lg:bottom-6 left-4 right-4 sm:right-auto sm:w-96 z-50 bg-white text-[#1d1d1f] border-2 border-[#1d1d1f] shadow-[6px_6px_0_#FFCC00] p-4 flex items-start gap-3 no-print"
+          className="fixed bottom-16 lg:bottom-6 left-4 right-4 sm:right-auto sm:w-96 z-50 bg-white text-[#1d1d1f] border-2 border-[#3C2B02] shadow-[6px_6px_0_#9D7110] p-4 flex items-start gap-3 no-print"
         >
           <MessageSquare className="w-5 h-5 text-[#1B6CFF] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
@@ -1175,12 +1187,12 @@ export default function App() {
       {activeToast && (
         <div
           role="status"
-          className="fixed bottom-16 lg:bottom-6 right-4 left-4 sm:left-auto sm:w-96 z-50 bg-[#1d1d1f] text-white border-2 border-[#FFCC00] p-4 shadow-2xl flex items-start gap-3 no-print"
+          className="fixed bottom-32 lg:bottom-24 right-4 left-4 sm:left-auto sm:w-96 z-50 bg-[#3C2B02] text-white border-2 border-[#9D7110] p-4 shadow-2xl flex items-start gap-3 no-print"
         >
-          <BellRing className="w-5 h-5 text-[#FFCC00] shrink-0 mt-0.5" />
+          <BellRing className="w-5 h-5 text-[#CD9E34] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-extrabold text-[#FFCC00]">{activeToast.title}</p>
-            <p className="text-xs text-neutral-200 mt-1">{activeToast.message}</p>
+            <p className="text-xs font-extrabold text-[#CD9E34]">{activeToast.title}</p>
+            <p className="text-xs text-[#F2E9D4] mt-1">{activeToast.message}</p>
             <button
               type="button"
               onClick={() => {
@@ -1188,7 +1200,7 @@ export default function App() {
                 setActiveToast(null);
                 navigate('track');
               }}
-              className="mt-2 text-[11px] font-bold underline text-white hover:text-[#FFCC00] cursor-pointer"
+              className="mt-2 text-[11px] font-bold underline text-white hover:text-[#CD9E34] cursor-pointer"
             >
               View on Live Map
             </button>
@@ -1197,7 +1209,7 @@ export default function App() {
             type="button"
             onClick={() => setActiveToast(null)}
             aria-label="Dismiss notification"
-            className="text-neutral-400 hover:text-white cursor-pointer"
+            className="text-neutral-300 hover:text-white cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

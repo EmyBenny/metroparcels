@@ -384,7 +384,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
           ctx.fillRect(0, h - 170, w, 170);
 
           // Corner broadcast frame markers
-          ctx.strokeStyle = '#FFCC00';
+          ctx.strokeStyle = '#CD9E34';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(20, 44);
@@ -399,7 +399,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
           if (!muted && isPlaying) {
             for (let b = 0; b < 5; b++) {
               const barH = 6 + Math.abs(Math.sin(progressSec * 6 + b * 1.1)) * 16;
-              ctx.fillStyle = '#FFCC00';
+              ctx.fillStyle = '#CD9E34';
               ctx.fillRect(w - 58 + b * 7, 40 - barH, 4, barH);
             }
           }
@@ -524,7 +524,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#FFCC00] inline-flex items-center gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#CD9E34] inline-flex items-center gap-2">
                 <Video className="w-4 h-4" />
                 <span>Metro Parcel Service Films · Inside Our Service</span>
               </span>
@@ -551,7 +551,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                 {/* Top Overlay Telemetry Metadata */}
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-3 pointer-events-none">
                   <div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#FFCC00] block">
+                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#CD9E34] block">
                       Chapter {chapter.num} · {chapter.category}
                     </span>
                     <span className="text-xs font-mono-tabular text-white/90">
@@ -578,7 +578,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     type="button"
                     onClick={() => setIsPlaying(true)}
                     aria-label="Play video story"
-                    className="absolute inset-0 m-auto w-16 h-16 bg-[#FFCC00] text-[#1d1d1f] flex items-center justify-center border-2 border-[#1d1d1f] shadow-xl hover:scale-105 transition-transform cursor-pointer"
+                    className="absolute inset-0 m-auto w-16 h-16 bg-[#9D7110] text-white flex items-center justify-center border-2 border-[#1d1d1f] shadow-xl hover:scale-105 transition-transform cursor-pointer"
                   >
                     <Play className="w-7 h-7 fill-current ml-0.5" />
                   </button>
@@ -590,7 +590,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     type="button"
                     onClick={() => setIsPlaying((p) => !p)}
                     aria-label={isPlaying ? 'Pause video' : 'Play video'}
-                    className="w-8 h-8 bg-[#FFCC00] text-[#1d1d1f] flex items-center justify-center cursor-pointer shrink-0"
+                    className="w-8 h-8 bg-[#9D7110] text-white flex items-center justify-center cursor-pointer shrink-0"
                   >
                     {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                   </button>
@@ -602,7 +602,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                       setProgressSec(0);
                     }}
                     aria-label="Next video chapter"
-                    className="w-8 h-8 border border-white/25 text-white hover:border-[#FFCC00] hover:text-[#FFCC00] flex items-center justify-center cursor-pointer shrink-0"
+                    className="w-8 h-8 border border-white/25 text-white hover:border-[#CD9E34] hover:text-[#CD9E34] flex items-center justify-center cursor-pointer shrink-0"
                   >
                     <SkipForward className="w-4 h-4" />
                   </button>
@@ -617,7 +617,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                       step={0.1}
                       value={progressSec}
                       onChange={(e) => setProgressSec(Number(e.target.value))}
-                      className="w-full accent-[#FFCC00] cursor-pointer"
+                      className="w-full accent-[#9D7110] cursor-pointer"
                     />
                     <span className="font-mono-tabular text-[11px] text-neutral-300 shrink-0">
                       00:{String(Math.floor(progressSec)).padStart(2, '0')} / 00:{chapter.durationSec}
@@ -630,7 +630,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     aria-label="Toggle captions"
                     className={`p-1.5 border text-xs cursor-pointer ${
                       showCaptions
-                        ? 'border-[#FFCC00] text-[#FFCC00]'
+                        ? 'border-[#CD9E34] text-[#CD9E34]'
                         : 'border-white/20 text-neutral-400'
                     }`}
                   >
@@ -640,9 +640,9 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     type="button"
                     onClick={() => setMuted((m) => !m)}
                     aria-label={muted ? 'Unmute audio visualizer' : 'Mute audio visualizer'}
-                    className="p-1.5 border border-white/20 text-neutral-200 hover:border-[#FFCC00] cursor-pointer"
+                    className="p-1.5 border border-white/20 text-neutral-200 hover:border-[#CD9E34] cursor-pointer"
                   >
-                    {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-[#FFCC00]" />}
+                    {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-[#CD9E34]" />}
                   </button>
                 </div>
               </div>
@@ -661,8 +661,8 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                       onClick={() => handleToggleVideoLike(chapter.id)}
                       className={`px-3.5 py-2 border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
                         likedVideos[chapter.id]
-                          ? 'bg-[#FFCC00] text-[#1d1d1f] border-[#FFCC00]'
-                          : 'border-neutral-700 text-white hover:border-[#FFCC00]'
+                          ? 'bg-[#9D7110] text-white border-[#9D7110]'
+                          : 'border-neutral-700 text-white hover:border-[#CD9E34]'
                       }`}
                     >
                       <ThumbsUp className="w-3.5 h-3.5" />
@@ -685,7 +685,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     <button
                       type="button"
                       onClick={handleShareClip}
-                      className="px-3.5 py-2 border border-neutral-700 text-xs font-bold text-white hover:border-[#FFCC00] inline-flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 border border-neutral-700 text-xs font-bold text-white hover:border-[#CD9E34] inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Share2 className="w-3.5 h-3.5" />
                       <span>Share</span>
@@ -694,7 +694,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                 </div>
 
                 {clipFeedback && (
-                  <div className="text-xs font-bold text-[#1d1d1f] bg-[#FFCC00] px-3 py-2">
+                  <div className="text-xs font-bold text-white bg-[#9D7110] px-3 py-2">
                     {clipFeedback}
                   </div>
                 )}
@@ -720,7 +720,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                           }}
                           className={`px-3 py-1.5 text-xs font-bold border cursor-pointer transition-colors ${
                             active
-                              ? 'bg-[#FFCC00] text-[#1d1d1f] border-[#FFCC00]'
+                              ? 'bg-[#9D7110] text-white border-[#9D7110]'
                               : 'bg-[#1d1d1f] text-neutral-200 border-neutral-700 hover:border-neutral-400'
                           }`}
                         >
@@ -734,8 +734,8 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
             </div>
 
             {/* Chapter Selector Sidebar */}
-            <div className="lg:col-span-4 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-neutral-400 pb-1">
+            <div className="lg:col-span-4 space-y-2.5 bg-[#3C2B02] border border-[#6D500C] p-3.5">
+              <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#F2E9D4] pb-1">
                 <span>Reel Chapters ({VIDEO_CHAPTERS.length})</span>
                 <span>Auto-playing</span>
               </div>
@@ -752,24 +752,24 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     }}
                     className={`w-full text-left p-3 border flex items-center gap-3 transition-colors cursor-pointer ${
                       active
-                        ? 'bg-[#2a2a2e] border-[#FFCC00]'
-                        : 'bg-[#161618] border-neutral-800 hover:border-neutral-600'
+                        ? 'bg-[#1E1501] border-[#CD9E34]'
+                        : 'bg-[#3C2B02] border-[#6D500C]/70 hover:border-[#CD9E34]/60'
                     }`}
                   >
                     <img
                       src={item.image}
                       alt={item.title}
                       referrerPolicy="no-referrer"
-                      className="w-20 h-14 object-cover shrink-0 border border-neutral-700"
+                      className="w-20 h-14 object-cover shrink-0 border border-[#6D500C]"
                     />
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FFCC00] block">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#CD9E34] block">
                         {item.num} · {item.category}
                       </span>
                       <span className="font-bold text-xs text-white line-clamp-2 mt-0.5 block">
                         {item.title}
                       </span>
-                      <span className="text-[11px] font-mono-tabular text-neutral-400 mt-0.5 block">
+                      <span className="text-[11px] font-mono-tabular text-[#F2E9D4]/80 mt-0.5 block">
                         00:{item.durationSec} · {videoLikes[item.id] ?? 0} applauds
                       </span>
                     </div>
@@ -802,8 +802,8 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                 onClick={() => setActiveGroup(group)}
                 className={`px-3.5 py-2 text-xs font-extrabold border cursor-pointer transition-colors ${
                   activeGroup === group
-                    ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
-                    : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#1d1d1f]'
+                    ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
+                    : 'bg-white text-[#1d1d1f] border-neutral-300 hover:border-[#3C2B02]'
                 }`}
               >
                 {group === 'All' ? 'All Stories' : group}
@@ -835,7 +835,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                   <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 via-black/35 to-transparent pointer-events-none" />
                   <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2 text-white">
                     <div>
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#FFCC00] block">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#CD9E34] block">
                         {story.num} · {story.group}
                       </span>
                       <h3 className="font-extrabold text-lg sm:text-xl leading-snug">
@@ -846,7 +846,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                       type="button"
                       onClick={() => setLightboxStory(story)}
                       aria-label={`Inspect ${story.title}`}
-                      className="w-9 h-9 bg-[#1d1d1f]/90 hover:bg-[#FFCC00] text-white hover:text-[#1d1d1f] border border-white/25 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                      className="w-9 h-9 bg-[#1d1d1f]/90 hover:bg-[#9D7110] text-white border border-white/25 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
                     >
                       <Maximize2 className="w-4 h-4" />
                     </button>
@@ -873,8 +873,8 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                       }}
                       className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border cursor-pointer transition-colors ${
                         liked
-                          ? 'bg-[#FFF6CC] border-[#1d1d1f] text-[#1d1d1f]'
-                          : 'bg-white border-neutral-300 text-[#1d1d1f] hover:border-[#1d1d1f]'
+                          ? 'bg-[#F2E9D4] border-[#3C2B02] text-[#1E1501]'
+                          : 'bg-white border-neutral-300 text-[#1d1d1f] hover:border-[#3C2B02]'
                       }`}
                     >
                       <Heart
@@ -941,7 +941,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                         {selectedPollId && (
                           <div
                             className={`absolute inset-y-0 left-0 transition-all duration-500 ${
-                              isMine ? 'bg-[#FFCC00]/55' : 'bg-neutral-200/65'
+                              isMine ? 'bg-[#9D7110]/30' : 'bg-neutral-200/65'
                             }`}
                             style={{ width: `${pct}%` }}
                           />
@@ -984,7 +984,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                           onClick={() => setMatcherItem(item)}
                           className={`w-full text-left px-3 py-2 border font-bold cursor-pointer ${
                             matcherItem === item
-                              ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                              ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                               : 'bg-[#f2f2f2] text-[#1d1d1f] border-neutral-200'
                           }`}
                         >
@@ -1004,7 +1004,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                           onClick={() => setMatcherSpeed(spd)}
                           className={`w-full text-left px-3 py-2 border font-bold cursor-pointer ${
                             matcherSpeed === spd
-                              ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                              ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                               : 'bg-[#f2f2f2] text-[#1d1d1f] border-neutral-200'
                           }`}
                         >
@@ -1024,7 +1024,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                           onClick={() => setMatcherDrop(drop)}
                           className={`w-full text-left px-3 py-2 border font-bold cursor-pointer ${
                             matcherDrop === drop
-                              ? 'bg-[#1d1d1f] text-[#FFCC00] border-[#1d1d1f]'
+                              ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
                               : 'bg-[#f2f2f2] text-[#1d1d1f] border-neutral-200'
                           }`}
                         >
@@ -1035,22 +1035,22 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                   </div>
                 </div>
 
-                <div className="bg-[#FFF6CC] border border-[#1d1d1f] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-[#F2E9D4] border border-[#3C2B02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1d1d1f]/75 block">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#3C2B02]/80 block">
                       Recommended: {matcherRecommendation.eta}
                     </span>
-                    <p className="font-extrabold text-base text-[#1d1d1f]">
+                    <p className="font-extrabold text-base text-[#1E1501]">
                       {matcherRecommendation.tier}
                     </p>
-                    <p className="text-xs text-[#1d1d1f]/80 mt-0.5">{matcherRecommendation.note}</p>
+                    <p className="text-xs text-[#3C2B02]/90 mt-0.5">{matcherRecommendation.note}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() =>
                       onNavigate(matcherItem === 'Multi-Box Order' ? 'business' : 'contact')
                     }
-                    className="px-4 py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer"
+                    className="px-4 py-2.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white transition-colors text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     {matcherItem === 'Multi-Box Order' ? 'Explore Business →' : 'Ask Operations →'}
                   </button>
@@ -1106,7 +1106,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                   )}
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[#1d1d1f] text-[#FFCC00] font-extrabold cursor-pointer hover:bg-black"
+                    className="px-4 py-2 bg-[#3C2B02] text-[#CD9E34] font-extrabold cursor-pointer hover:bg-[#9D7110] hover:text-white transition-colors"
                   >
                     Post Shoutout
                   </button>
@@ -1159,7 +1159,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                 type="button"
                 onClick={() => setLightboxStory(null)}
                 aria-label="Close story preview"
-                className="absolute top-3 right-3 w-10 h-10 bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center cursor-pointer"
+                className="absolute top-3 right-3 w-10 h-10 bg-[#3C2B02] text-[#CD9E34] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1171,7 +1171,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                   setLightboxStory(prev);
                 }}
                 aria-label="Previous story"
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#1d1d1f]/85 text-white hover:text-[#FFCC00] flex items-center justify-center cursor-pointer"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#1d1d1f]/85 text-white hover:text-[#CD9E34] flex items-center justify-center cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -1183,7 +1183,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                   setLightboxStory(next);
                 }}
                 aria-label="Next story"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#1d1d1f]/85 text-white hover:text-[#FFCC00] flex items-center justify-center cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#1d1d1f]/85 text-white hover:text-[#CD9E34] flex items-center justify-center cursor-pointer"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -1207,7 +1207,7 @@ export const HomeMediaShowcase: React.FC<HomeMediaShowcaseProps> = ({ onNavigate
                     setLightboxStory(null);
                     onNavigate('track');
                   }}
-                  className="px-5 py-2.5 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-xs cursor-pointer hover:bg-[#1d1d1f] hover:text-[#FFCC00]"
+                  className="px-5 py-2.5 bg-[#9D7110] text-white font-extrabold text-xs cursor-pointer hover:bg-[#3C2B02] hover:text-[#CD9E34] transition-colors"
                 >
                   Track a Parcel
                 </button>

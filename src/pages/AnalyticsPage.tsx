@@ -125,7 +125,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1d1d1f] text-[#FFCC00] text-xs font-bold hover:bg-black transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#3C2B02] text-[#CD9E34] text-xs font-bold hover:bg-[#1E1501] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Export Route CSV</span>
@@ -184,7 +184,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#1d1d1f] text-[#FFCC00] text-xs font-bold cursor-pointer whitespace-nowrap"
+              className="px-4 py-2 bg-[#9D7110] hover:bg-[#3C2B02] text-white text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
             >
               Load Route
             </button>
@@ -243,7 +243,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                       if (playbackIdx >= waypoints.length - 1) setPlaybackIdx(0);
                       setIsPlaying((p) => !p);
                     }}
-                    className="px-4 h-9 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 h-9 bg-[#9D7110] hover:bg-[#CD9E34] text-white font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
                     {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     <span>{isPlaying ? 'Pause' : 'Play Route'}</span>
@@ -260,7 +260,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
                 {/* Speed Multiplier */}
                 <div className="flex items-center gap-1.5 text-xs">
-                  <FastForward className="w-3.5 h-3.5 text-[#FFCC00]" />
+                  <FastForward className="w-3.5 h-3.5 text-[#CD9E34]" />
                   {([1, 2, 5, 10] as const).map((sp) => (
                     <button
                       key={sp}
@@ -268,7 +268,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                       onClick={() => setSpeedMultiplier(sp)}
                       className={`px-2.5 py-1 font-mono-tabular font-bold cursor-pointer ${
                         speedMultiplier === sp
-                          ? 'bg-[#FFCC00] text-[#1d1d1f]'
+                          ? 'bg-[#9D7110] text-white'
                           : 'bg-white/10 text-neutral-300 hover:bg-white/20'
                       }`}
                     >
@@ -289,7 +289,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                     setPlaybackIdx(Number(e.target.value));
                   }}
                   aria-label="Route playback timeline scrubber"
-                  className="w-full accent-[#FFCC00]"
+                  className="w-full accent-[#CD9E34]"
                 />
                 <div className="flex justify-between text-[11px] font-mono-tabular text-neutral-400 mt-1">
                   <span>
@@ -317,7 +317,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                   setPlaybackIdx(idx);
                 }}
                 className={`w-full text-left px-4 py-3 text-xs transition-colors flex items-center justify-between gap-2 cursor-pointer ${
-                  idx === playbackIdx ? 'bg-[#FFF6CC] font-bold' : 'hover:bg-neutral-50'
+                  idx === playbackIdx ? 'bg-[#F2E9D4] font-bold border-l-4 border-l-[#9D7110]' : 'hover:bg-neutral-50'
                 }`}
               >
                 <div className="min-w-0">
@@ -357,7 +357,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                     {d.parcels}
                   </span>
                   <div
-                    className="w-full max-w-[44px] bg-[#1d1d1f] group-hover:bg-[#FFCC00] transition-colors"
+                    className="w-full max-w-[44px] bg-[#3C2B02] group-hover:bg-[#9D7110] transition-colors"
                     style={{ height: `${heightPct}%` }}
                     title={`${d.day}: ${d.parcels} parcels · ${d.onTimePct}% on-time · ${d.deviations} deviations`}
                   />
@@ -426,7 +426,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                         cx={x}
                         cy={y}
                         r={active ? 6 : 3.5}
-                        fill={active ? '#FFCC00' : '#1d1d1f'}
+                        fill={active ? '#9D7110' : '#3C2B02'}
                         stroke="#ffffff"
                         strokeWidth="1.5"
                       />

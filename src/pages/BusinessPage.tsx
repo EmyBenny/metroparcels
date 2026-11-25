@@ -45,22 +45,22 @@ export const BusinessPage: React.FC<BusinessPageProps> = ({ onNavigate }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 pb-24 lg:pb-16 space-y-12">
       {/* Business Hero */}
-      <div className="bg-[#1d1d1f] text-white p-8 sm:p-12 grid lg:grid-cols-12 gap-8 items-center">
+      <div className="bg-[#1E1501] text-white p-8 sm:p-12 grid lg:grid-cols-12 gap-8 items-center border-t-4 border-[#9D7110]">
         <div className="lg:col-span-7">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-[#FFCC00]">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-[#CD9E34]">
             For business
           </span>
           <h1 className="font-display text-4xl sm:text-5xl mt-2 text-balance">
             Ship at scale. Pay monthly.
           </h1>
-          <p className="mt-4 text-sm sm:text-base text-neutral-300 max-w-xl leading-relaxed">
+          <p className="mt-4 text-sm sm:text-base text-[#F2E9D4]/85 max-w-xl leading-relaxed">
             Bulk labels, API access, branded tracking pages and one consolidated invoice every month.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => onNavigate('contact')}
-              className="px-6 py-3 bg-[#FFCC00] text-[#1d1d1f] font-extrabold text-sm hover:bg-white transition-colors cursor-pointer"
+              className="px-6 py-3 bg-[#9D7110] text-white font-extrabold text-sm hover:bg-[#CD9E34] hover:text-[#1E1501] transition-colors cursor-pointer"
             >
               Open an account
             </button>
@@ -75,7 +75,7 @@ export const BusinessPage: React.FC<BusinessPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Monthly Billing Card */}
-        <div className="lg:col-span-5 bg-white text-[#1d1d1f] p-6 border-2 border-[#FFCC00]">
+        <div className="lg:col-span-5 bg-white text-[#1d1d1f] p-6 border-2 border-[#9D7110]">
           <div className="text-xs font-bold uppercase tracking-wider text-[#6b6b70]">This month</div>
           <div className="grid grid-cols-2 gap-4 mt-4 pb-4 border-b border-neutral-200">
             <div>
@@ -107,7 +107,7 @@ export const BusinessPage: React.FC<BusinessPageProps> = ({ onNavigate }) => {
           const Icon = f.icon;
           return (
             <div key={f.title} className="bg-white border border-neutral-200 p-6">
-              <div className="w-11 h-11 rounded-xl bg-[#FFCC00] text-[#1d1d1f] flex items-center justify-center mb-4">
+              <div className="w-11 h-11 rounded-xl bg-[#9D7110] text-white flex items-center justify-center mb-4">
                 <Icon className="w-5 h-5" />
               </div>
               <h2 className="font-extrabold text-lg text-[#1d1d1f]">{f.title}</h2>
@@ -138,7 +138,7 @@ export const BusinessPage: React.FC<BusinessPageProps> = ({ onNavigate }) => {
           <button
             type="button"
             onClick={() => onNavigate('contact')}
-            className="px-5 py-3 bg-[#1d1d1f] text-[#FFCC00] text-xs font-extrabold cursor-pointer"
+            className="px-5 py-3 bg-[#3C2B02] hover:bg-[#9D7110] text-[#F2E9D4] hover:text-white text-xs font-extrabold transition-colors cursor-pointer"
           >
             Contact sales
           </button>

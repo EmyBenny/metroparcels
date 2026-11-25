@@ -215,7 +215,7 @@ const VehicleMarkerWithWindow: React.FC<{
               ? 'bg-[#FF5A1F] text-white'
               : isDelivered
                 ? 'bg-[#00C853] text-white'
-                : 'bg-[#FFCC00] text-[#1d1d1f]'
+                : 'bg-[#9D7110] text-white'
           }`}
         >
           {isDelivered ? (
@@ -457,20 +457,20 @@ const OfflineVectorMap: React.FC<{
 
         {/* Active Vehicle / Courier Pin */}
         <g transform={`translate(${currentProj.x}, ${currentProj.y})`}>
-          <circle r="22" fill={isDeviation ? '#FF5A1F' : '#FFCC00'} fillOpacity="0.28" />
+          <circle r="22" fill={isDeviation ? '#FF5A1F' : '#9D7110'} fillOpacity="0.28" />
           <circle
             r="14"
-            fill={isDeviation ? '#FF5A1F' : '#FFCC00'}
+            fill={isDeviation ? '#FF5A1F' : '#9D7110'}
             stroke="#1d1d1f"
             strokeWidth="3"
           />
-          <circle r="4" fill="#1d1d1f" />
+          <circle r="4" fill="#FFFFFF" />
         </g>
       </svg>
 
       {/* Top Left Mode Badge */}
       <div className="absolute top-3 left-3 bg-[#1d1d1f] text-white px-3 py-1.5 text-xs font-medium flex items-center gap-2 shadow-md">
-        <WifiOff className="w-3.5 h-3.5 text-[#FFCC00] shrink-0" />
+        <WifiOff className="w-3.5 h-3.5 text-[#CD9E34] shrink-0" />
         <span>{reasonLabel}</span>
       </div>
 
@@ -569,7 +569,7 @@ export const MapViewport: React.FC<MapViewportProps> = ({
               <MapCapabilityMarkers onMapIdUnavailable={handleMapUnavailable}>
                 {/* Origin Pin */}
                 <AdvancedMarker position={shipment.origin} title={`Origin: ${shipment.origin.city}`}>
-                  <div className="px-2 py-1 bg-[#1d1d1f] text-[#FFCC00] text-[11px] font-bold border border-white shadow">
+                  <div className="px-2 py-1 bg-[#1d1d1f] text-[#CD9E34] text-[11px] font-bold border border-white shadow">
                     ORIGIN · {shipment.origin.city.split(',')[0]}
                   </div>
                 </AdvancedMarker>
@@ -601,7 +601,7 @@ export const MapViewport: React.FC<MapViewportProps> = ({
         <button
           type="button"
           onClick={() => setPreferOfflineVector((v) => !v)}
-          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 bg-white/95 border border-[#1d1d1f] px-3 py-1.5 text-xs font-bold text-[#1d1d1f] hover:bg-[#FFCC00] transition-colors shadow-sm cursor-pointer"
+          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 bg-white/95 border border-[#1d1d1f] px-3 py-1.5 text-xs font-bold text-[#1d1d1f] hover:bg-[#9D7110] hover:text-white transition-colors shadow-sm cursor-pointer"
         >
           <Layers className="w-3.5 h-3.5" />
           <span>{preferOfflineVector ? 'Google Maps' : 'Vector Mode'}</span>
@@ -610,7 +610,7 @@ export const MapViewport: React.FC<MapViewportProps> = ({
 
       {/* Compact Live Telemetry HUD */}
       <div className="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-3 bg-[#1d1d1f]/92 text-white px-3.5 py-2 text-xs shadow-lg pointer-events-none">
-        <Navigation className="w-3.5 h-3.5 text-[#FFCC00]" />
+        <Navigation className="w-3.5 h-3.5 text-[#CD9E34]" />
         <span className="font-mono-tabular">
           {pos.speedKmh ?? shipment.current.speedKmh} km/h
         </span>

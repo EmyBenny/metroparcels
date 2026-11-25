@@ -40,15 +40,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       {/* Desktop & Mobile Top Navigation — Strictly 3-Zone Contract */}
-      <header className="sticky top-0 z-40 bg-[#FFCC00] border-b border-black/10 no-print">
+      <header className="sticky top-0 z-40 bg-[#3C2B02] text-[#F2E9D4] border-b border-[#6D500C]/60 no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 lg:h-16 flex items-center justify-between gap-4 xl:gap-8">
           {/* Zone 1: Single-line Brand Wordmark */}
           <button
             type="button"
             onClick={() => navTo('home')}
-            className="inline-flex items-center gap-2.5 text-[#1d1d1f] font-extrabold text-lg sm:text-xl tracking-tight whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2.5 text-[#F2E9D4] hover:text-white font-extrabold text-lg sm:text-xl tracking-tight whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <span className="w-8 h-8 rounded-lg bg-[#1d1d1f] text-[#FFCC00] flex items-center justify-center font-display text-base">
+            <span className="w-8 h-8 rounded-lg bg-[#9D7110] text-white border border-[#CD9E34]/40 flex items-center justify-center font-display text-base">
               M
             </span>
             <span>Metro Parcel Service</span>
@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Zone 2: Desktop Concise Nav Links (No Send / Receipt / Return for visitors) */}
           <nav
-            className="hidden lg:flex items-center gap-5 xl:gap-6 text-sm font-bold text-[#1d1d1f]"
+            className="hidden lg:flex items-center gap-5 xl:gap-6 text-sm font-bold text-[#F2E9D4]"
             aria-label="Main navigation"
           >
             {(
@@ -75,8 +75,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => navTo(route)}
                 className={`py-1 border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentPage === route
-                    ? 'border-[#1d1d1f]'
-                    : 'border-transparent hover:border-[#1d1d1f]/50'
+                    ? 'border-[#CD9E34] text-white'
+                    : 'border-transparent hover:border-[#CD9E34]/60 hover:text-white'
                 }`}
               >
                 {label}
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onOpenAlerts}
               aria-label={`Alerts and offline status (${unreadAlertsCount} unread)`}
-              className="relative w-10 h-10 flex items-center justify-center bg-black/8 hover:bg-black/15 text-[#1d1d1f] transition-colors cursor-pointer"
+              className="relative w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 text-[#F2E9D4] transition-colors cursor-pointer"
             >
               <Bell className="w-4 h-4" />
               {unreadAlertsCount > 0 && (
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => navTo('track')}
-              className="hidden lg:inline-flex items-center px-4 py-2 bg-[#1d1d1f] text-white text-sm font-bold hover:bg-black hover:text-[#FFCC00] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hidden lg:inline-flex items-center px-4 py-2 bg-[#9D7110] text-white text-sm font-bold hover:bg-[#CD9E34] hover:text-[#1E1501] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               Track parcel
             </button>
@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open menu"
-              className="lg:hidden w-11 h-11 flex items-center justify-center text-[#1d1d1f] cursor-pointer"
+              className="lg:hidden w-11 h-11 flex items-center justify-center text-[#F2E9D4] hover:text-white cursor-pointer"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -126,14 +126,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Full Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-[#FFCC00] text-[#1d1d1f] flex flex-col p-6 overflow-y-auto lg:hidden">
-          <div className="flex items-center justify-between pb-4 border-b border-black/15">
-            <span className="font-extrabold text-xl tracking-tight">Metro Parcel Service Menu</span>
+        <div className="fixed inset-0 z-50 bg-[#3C2B02] text-[#F2E9D4] flex flex-col p-6 overflow-y-auto lg:hidden">
+          <div className="flex items-center justify-between pb-4 border-b border-[#6D500C]">
+            <span className="font-extrabold text-xl tracking-tight text-white">Metro Parcel Service Menu</span>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close menu"
-              className="w-11 h-11 flex items-center justify-center cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center text-[#F2E9D4] hover:text-white cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -156,8 +156,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 key={route}
                 type="button"
                 onClick={() => navTo(route)}
-                className={`w-full text-left py-3 px-2 text-lg font-bold border-b border-black/10 flex items-center justify-between cursor-pointer ${
-                  currentPage === route ? 'underline underline-offset-4' : ''
+                className={`w-full text-left py-3 px-2 text-lg font-bold border-b border-[#6D500C]/60 flex items-center justify-between cursor-pointer ${
+                  currentPage === route ? 'text-[#CD9E34] underline underline-offset-4' : 'text-[#F2E9D4] hover:text-white'
                 }`}
               >
                 <span>{label}</span>
@@ -166,12 +166,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="pt-4 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold bg-black/10 px-3 py-2.5">
+            <div className="flex items-center justify-between text-xs font-bold bg-[#1E1501]/70 border border-[#6D500C] px-3 py-2.5 text-[#F2E9D4]">
               <span className="inline-flex items-center gap-2">
                 {isOnline ? (
-                  <Wifi className="w-4 h-4 text-emerald-700" />
+                  <Wifi className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  <WifiOff className="w-4 h-4 text-amber-800" />
+                  <WifiOff className="w-4 h-4 text-[#CD9E34]" />
                 )}
                 {isOnline ? 'Connected · Live Sync Active' : 'Offline Mode · Cached Data'}
               </span>
@@ -193,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           type="button"
           onClick={() => navTo('home')}
           className={`flex flex-col items-center justify-center h-full text-[10px] font-bold cursor-pointer ${
-            currentPage === 'home' ? 'text-[#1d1d1f]' : 'text-[#6b6b70]'
+            currentPage === 'home' ? 'text-[#3C2B02]' : 'text-[#6b6b70]'
           }`}
         >
           <Home className="w-5 h-5 mb-0.5" />
@@ -209,8 +209,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span
             className={`px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 text-[11px] font-extrabold shadow-sm ${
               currentPage === 'track'
-                ? 'bg-[#1d1d1f] text-[#FFCC00]'
-                : 'bg-[#FFCC00] text-[#1d1d1f]'
+                ? 'bg-[#3C2B02] text-[#CD9E34]'
+                : 'bg-[#9D7110] text-white'
             }`}
           >
             <ScanLine className="w-4 h-4" />
@@ -222,7 +222,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           type="button"
           onClick={() => navTo('business')}
           className={`flex flex-col items-center justify-center h-full text-[10px] font-bold cursor-pointer ${
-            currentPage === 'business' ? 'text-[#1d1d1f]' : 'text-[#6b6b70]'
+            currentPage === 'business' ? 'text-[#3C2B02]' : 'text-[#6b6b70]'
           }`}
         >
           <Briefcase className="w-5 h-5 mb-0.5" />
@@ -233,7 +233,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           type="button"
           onClick={() => navTo('help')}
           className={`flex flex-col items-center justify-center h-full text-[10px] font-bold cursor-pointer ${
-            currentPage === 'help' ? 'text-[#1d1d1f]' : 'text-[#6b6b70]'
+            currentPage === 'help' ? 'text-[#3C2B02]' : 'text-[#6b6b70]'
           }`}
         >
           <HelpCircle className="w-5 h-5 mb-0.5" />
