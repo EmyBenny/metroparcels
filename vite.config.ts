@@ -50,6 +50,10 @@ export default defineConfig(() => {
           navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
             {
+              urlPattern: /\/api\/admin.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
               urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
               handler: 'NetworkOnly',
             },

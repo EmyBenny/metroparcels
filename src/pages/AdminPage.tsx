@@ -355,12 +355,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const adminTokenRef = useRef<string | null>(adminToken);
   adminTokenRef.current = adminToken;
 
-  const getAdminHeaders = (withJson = false): Record<string, string> => ({
-    ...(withJson ? { 'Content-Type': 'application/json' } : {}),
-    ...(adminToken
-      ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
-      : {}),
-  });
+  const getAdminHeaders = (withJson = false, tokenOverride?: string | null): Record<string, string> => {
+    const activeToken = tokenOverride !== undefined ? tokenOverride : adminTokenRef.current;
+    return {
+      ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+      ...(activeToken
+        ? { Authorization: `Bearer ${activeToken}`, 'X-Admin-Token': activeToken }
+        : {}),
+    };
+  };
 
   const handleSessionExpired = (failedToken?: string | null) => {
     if (failedToken && adminTokenRef.current && adminTokenRef.current !== failedToken) {
@@ -375,21 +378,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       setAuthStatusLoading(false);
       return;
     }
+    if (adminToken) {
+      setAuthStatusLoading(false);
+      return;
+    }
     let cancelled = false;
-    setAuthStatusLoading(!adminToken);
+    setAuthStatusLoading(true);
     fetch('/api/admin/auth/status', {
-      headers: getAdminHeaders(),
+      cache: 'no-store',
+      credentials: 'include',
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data?.ok) return;
         setNeedsSetup(Boolean(data.needsSetup));
-        if (adminToken && data.authenticated === false) {
-          handleSessionExpired(adminToken);
-        }
       })
       .catch(() => {
-        // Keep login form or cached token state
+        // Keep login form state
       })
       .finally(() => {
         if (!cancelled) setAuthStatusLoading(false);
@@ -411,6 +416,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       const endpoint = needsSetup ? '/api/admin/auth/setup' : '/api/admin/auth/login';
       const res = await fetch(endpoint, {
         method: 'POST',
+        cache: 'no-store',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: loginEmail.trim(),
@@ -446,6 +453,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         await fetch('/api/admin/auth/logout', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(),
         });
       } catch {
@@ -473,11 +482,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   const fetchAdminOverview = async () => {
-    const reqToken = adminToken;
+    const reqToken = adminTokenRef.current;
     if (!isOnline || !reqToken) return;
     try {
       const res = await fetch('/api/admin/overview', {
-        headers: getAdminHeaders(),
+        cache: 'no-store',
+        credentials: 'include',
+        headers: getAdminHeaders(false, reqToken),
       });
       if (res.status === 401) {
         handleSessionExpired(reqToken);
@@ -673,6 +684,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
           method: 'PATCH',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify(payload),
         });
@@ -825,6 +838,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/shipments', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify(payload),
         });
@@ -954,6 +969,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'DELETE',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {
@@ -984,6 +1001,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'PATCH',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify({ paymentState }),
         });
@@ -1029,6 +1048,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/alerts', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify(broadcastForm),
         });
@@ -1068,6 +1089,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
           method: 'PATCH',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify({ status: nextStatus, adminNote: note }),
         });
@@ -1183,6 +1206,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/returns', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify({
             code,
@@ -1227,6 +1252,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
           method: 'PATCH',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify({ status: next }),
         });
@@ -1258,6 +1285,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/shipments', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(true),
           body: JSON.stringify({
             trackingNo,
@@ -1292,6 +1321,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const res = await fetch('/api/admin/reset', {
           method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {

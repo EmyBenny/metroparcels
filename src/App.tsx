@@ -545,11 +545,14 @@ export default function App() {
     const syncActiveTickets = async () => {
       if (cancelled) return;
       if (isAdminActive && adminTokenRef.current) {
+        const reqToken = adminTokenRef.current;
         try {
           const res = await fetch('/api/admin/tickets', {
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
-              Authorization: `Bearer ${adminTokenRef.current}`,
-              'X-Admin-Token': adminTokenRef.current,
+              Authorization: `Bearer ${reqToken}`,
+              'X-Admin-Token': reqToken,
             },
           });
           if (!cancelled && res.ok) {
@@ -636,19 +639,24 @@ export default function App() {
       deviationThresholdMeters: number
     ) => {
       if (isOnline) {
+        const reqToken = adminTokenRef.current;
         try {
           const res = await fetch(`/api/shipments/${encodeURIComponent(trackingNo)}/position`, {
             method: 'POST',
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken
-                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+              ...(reqToken
+                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
                 : {}),
             },
             body: JSON.stringify({ ...coords, deviationThresholdMeters }),
           });
           if (res.status === 401) {
-            handleAdminLogout();
+            if (!reqToken || reqToken === adminTokenRef.current) {
+              handleAdminLogout();
+            }
             return;
           }
           if (res.ok) {
@@ -753,19 +761,24 @@ export default function App() {
   const handleUpdateGeofences = useCallback(
     async (trackingNo: string, geofences: GeofenceZone[]) => {
       if (isOnline) {
+        const reqToken = adminTokenRef.current;
         try {
           const res = await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
             method: 'PUT',
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken
-                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+              ...(reqToken
+                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
                 : {}),
             },
             body: JSON.stringify({ geofences }),
           });
           if (res.status === 401) {
-            handleAdminLogout();
+            if (!reqToken || reqToken === adminTokenRef.current) {
+              handleAdminLogout();
+            }
             return;
           }
           setShipments((prev) =>
@@ -857,14 +870,17 @@ export default function App() {
       payload: { senderRole: 'visitor' | 'admin'; senderName: string; text: string }
     ): Promise<{ ok: boolean; ticket?: SupportTicket; error?: string }> => {
       if (isOnline) {
+        const reqToken = adminTokenRef.current;
         let res: Response | null = null;
         try {
           res = await fetch(`/api/tickets/${encodeURIComponent(ticketIdOrCode)}/replies`, {
             method: 'POST',
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(payload.senderRole === 'admin' && adminToken
-                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+              ...(payload.senderRole === 'admin' && reqToken
+                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
                 : {}),
             },
             body: JSON.stringify(payload),
@@ -874,7 +890,9 @@ export default function App() {
         }
         if (res) {
           if (res.status === 401 && payload.senderRole === 'admin') {
-            handleAdminLogout();
+            if (!reqToken || reqToken === adminTokenRef.current) {
+              handleAdminLogout();
+            }
             return { ok: false, error: 'Admin session expired. Please sign in again.' };
           }
           const data = await res.json().catch(() => ({}));
@@ -959,19 +977,24 @@ export default function App() {
       status: SupportTicket['status']
     ): Promise<{ ok: boolean; ticket?: SupportTicket }> => {
       if (isOnline) {
+        const reqToken = adminTokenRef.current;
         try {
           const res = await fetch(`/api/admin/tickets/${encodeURIComponent(ticketId)}`, {
             method: 'PATCH',
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken
-                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+              ...(reqToken
+                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
                 : {}),
             },
             body: JSON.stringify({ status }),
           });
           if (res.status === 401) {
-            handleAdminLogout();
+            if (!reqToken || reqToken === adminTokenRef.current) {
+              handleAdminLogout();
+            }
             return { ok: false };
           }
           if (res.ok) {
@@ -999,19 +1022,24 @@ export default function App() {
   const handleUpdateSiteSettings = useCallback(
     async (nextSettings: SiteSettings): Promise<{ ok: boolean; error?: string }> => {
       if (isOnline) {
+        const reqToken = adminTokenRef.current;
         try {
           const res = await fetch('/api/admin/settings', {
             method: 'PUT',
+            cache: 'no-store',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(adminToken
-                ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
+              ...(reqToken
+                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
                 : {}),
             },
             body: JSON.stringify(nextSettings),
           });
           if (res.status === 401) {
-            handleAdminLogout();
+            if (!reqToken || reqToken === adminTokenRef.current) {
+              handleAdminLogout();
+            }
             return { ok: false, error: 'Admin session expired. Please sign in again.' };
           }
           const data = await res.json();

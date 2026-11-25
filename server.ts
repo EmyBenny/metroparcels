@@ -44,7 +44,8 @@ function isSafeMediaUrl(url: string): boolean {
 }
 
 // ======================== ADMIN AUTHENTICATION ========================
-const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const ADMIN_COOKIE_NAME = 'metro_admin_session';
 const AUTH_STATE_FILE = path.join(os.tmpdir(), 'metro-parcel-admin-auth.json');
 
 interface PersistedAuthState {
@@ -102,6 +103,17 @@ function getSessionSecret(): string {
     return crypto
       .createHmac('sha256', envCreds.password)
       .update(`metro-parcel-session:${envCreds.email.trim().toLowerCase()}`)
+      .digest('hex');
+  }
+
+  if (!claimedAdmin) {
+    const disk = readPersistedAuthState();
+    if (disk.claimedAdmin) claimedAdmin = disk.claimedAdmin;
+  }
+  if (claimedAdmin) {
+    return crypto
+      .createHmac('sha256', claimedAdmin.hashHex)
+      .update(`metro-parcel-claimed:${claimedAdmin.email.trim().toLowerCase()}:${claimedAdmin.salt}`)
       .digest('hex');
   }
 
@@ -198,6 +210,49 @@ function verifyAdminToken(token: string): { email: string } | null {
   }
 }
 
+function readCookieValue(req: express.Request, name: string): string | null {
+  const rawCookie = req.headers.cookie;
+  if (!rawCookie) return null;
+  const pairs = rawCookie.split(';');
+  for (const pair of pairs) {
+    const idx = pair.indexOf('=');
+    if (idx === -1) continue;
+    const key = pair.slice(0, idx).trim();
+    if (key === name) {
+      const val = pair.slice(idx + 1).trim();
+      try {
+        return decodeURIComponent(val);
+      } catch {
+        return val;
+      }
+    }
+  }
+  return null;
+}
+
+function setAdminSessionCookie(req: express.Request, res: express.Response, token: string) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+  const isHttps = req.secure || forwardedProto.includes('https');
+  res.cookie(ADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: isHttps ? 'none' : 'lax',
+    secure: isHttps,
+    maxAge: TOKEN_TTL_MS,
+    path: '/api',
+  });
+}
+
+function clearAdminSessionCookie(req: express.Request, res: express.Response) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+  const isHttps = req.secure || forwardedProto.includes('https');
+  res.clearCookie(ADMIN_COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: isHttps ? 'none' : 'lax',
+    secure: isHttps,
+    path: '/api',
+  });
+}
+
 function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
   const customHeader = req.headers['x-admin-token'];
   const customToken = Array.isArray(customHeader) ? customHeader[0] : customHeader;
@@ -208,10 +263,21 @@ function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
 
   const rawAuth = req.headers.authorization;
   const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
-  if (!authHeader) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
-  if (!match || !match[1]) return null;
-  return verifyAdminToken(match[1].trim());
+  if (authHeader) {
+    const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+    if (match && match[1]) {
+      const verified = verifyAdminToken(match[1].trim());
+      if (verified) return verified;
+    }
+  }
+
+  const cookieToken = readCookieValue(req, ADMIN_COOKIE_NAME);
+  if (cookieToken && cookieToken.trim()) {
+    const verified = verifyAdminToken(cookieToken.trim());
+    if (verified) return verified;
+  }
+
+  return null;
 }
 
 function requireAdminAuth(
@@ -360,6 +426,19 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'Metro Parcel Service API', timestamp: new Date().toISOString() });
 });
 
+// Disable caching and enforce admin authentication across all /api/admin/* routes
+app.use('/api/admin', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Vary', 'Authorization, X-Admin-Token, Cookie');
+  if (req.path.startsWith('/auth/')) {
+    next();
+    return;
+  }
+  requireAdminAuth(req, res, next);
+});
+
 app.get('/api/admin/auth/status', (req, res) => {
   const envCreds = getConfiguredEnvCredentials();
   const needsSetup = !envCreds && !claimedAdmin;
@@ -401,6 +480,7 @@ app.post('/api/admin/auth/setup', (req, res) => {
   });
 
   const token = createAdminToken(cleanEmail);
+  setAdminSessionCookie(req, res, token);
   res.status(201).json({ ok: true, token, email: cleanEmail });
 });
 
@@ -423,20 +503,13 @@ app.post('/api/admin/auth/login', (req, res) => {
   }
 
   const token = createAdminToken(verifiedEmail);
+  setAdminSessionCookie(req, res, token);
   res.json({ ok: true, token, email: verifiedEmail });
 });
 
-app.post('/api/admin/auth/logout', (_req, res) => {
+app.post('/api/admin/auth/logout', (req, res) => {
+  clearAdminSessionCookie(req, res);
   res.json({ ok: true });
-});
-
-// Gate all /api/admin/* routes except /api/admin/auth/*
-app.use('/api/admin', (req, res, next) => {
-  if (req.path.startsWith('/auth/')) {
-    next();
-    return;
-  }
-  requireAdminAuth(req, res, next);
 });
 
 app.get('/api/stream/tracking', (req, res) => {
