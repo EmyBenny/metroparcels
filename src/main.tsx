@@ -23,13 +23,22 @@ console.error = (...args: unknown[]) => {
   }
 };
 
-// Register PWA Service Worker for offline mode & asset precaching
-registerSW({
-  immediate: true,
-  onOfflineReady() {
-    window.dispatchEvent(new CustomEvent('metro-parcel-offline-ready'));
-  },
-});
+// Register PWA Service Worker only in production; unregister stale dev service workers
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onOfflineReady() {
+      window.dispatchEvent(new CustomEvent('metro-parcel-offline-ready'));
+    },
+  });
+} else if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+    .catch(() => {
+      // Ignore unregister errors
+    });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -230,27 +230,59 @@ function readCookieValue(req: express.Request, name: string): string | null {
   return null;
 }
 
-function setAdminSessionCookie(req: express.Request, res: express.Response, token: string) {
+function isHttpsRequest(req: express.Request): boolean {
   const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
-  const isHttps = req.secure || forwardedProto.includes('https');
-  res.cookie(ADMIN_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: isHttps ? 'none' : 'lax',
-    secure: isHttps,
-    maxAge: TOKEN_TTL_MS,
-    path: '/api',
-  });
+  return req.secure || forwardedProto.includes('https');
+}
+
+function passesCookieCsrfCheck(req: express.Request): boolean {
+  const method = req.method.toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return true;
+  if (String(req.headers['x-requested-with'] || '') === 'XMLHttpRequest') return true;
+  const expectedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+  const origin = String(req.headers.origin || '').trim();
+  if (origin && expectedHost) {
+    try {
+      return new URL(origin).host.toLowerCase() === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function setAdminSessionCookie(req: express.Request, res: express.Response, token: string) {
+  const isHttps = isHttpsRequest(req);
+  const parts = [
+    `${ADMIN_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    'Path=/api',
+    `Max-Age=${Math.floor(TOKEN_TTL_MS / 1000)}`,
+    'HttpOnly',
+    isHttps ? 'SameSite=None' : 'SameSite=Lax',
+  ];
+  if (isHttps) {
+    parts.push('Secure', 'Partitioned');
+  }
+  res.append('Set-Cookie', parts.join('; '));
 }
 
 function clearAdminSessionCookie(req: express.Request, res: express.Response) {
-  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
-  const isHttps = req.secure || forwardedProto.includes('https');
-  res.clearCookie(ADMIN_COOKIE_NAME, {
-    httpOnly: true,
-    sameSite: isHttps ? 'none' : 'lax',
-    secure: isHttps,
-    path: '/api',
-  });
+  const isHttps = isHttpsRequest(req);
+  const parts = [
+    `${ADMIN_COOKIE_NAME}=`,
+    'Path=/api',
+    'Max-Age=0',
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'HttpOnly',
+    isHttps ? 'SameSite=None' : 'SameSite=Lax',
+  ];
+  if (isHttps) {
+    parts.push('Secure', 'Partitioned');
+  }
+  res.append('Set-Cookie', parts.join('; '));
 }
 
 function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
@@ -274,7 +306,10 @@ function getAuthenticatedAdmin(req: express.Request): { email: string } | null {
   const cookieToken = readCookieValue(req, ADMIN_COOKIE_NAME);
   if (cookieToken && cookieToken.trim()) {
     const verified = verifyAdminToken(cookieToken.trim());
-    if (verified) return verified;
+    if (verified) {
+      if (!passesCookieCsrfCheck(req)) return null;
+      return verified;
+    }
   }
 
   return null;
@@ -448,6 +483,7 @@ app.get('/api/admin/auth/status', (req, res) => {
     needsSetup,
     authenticated: Boolean(admin),
     email: admin?.email ?? null,
+    ...(admin ? { token: createAdminToken(admin.email) } : {}),
   });
 });
 
@@ -816,6 +852,8 @@ const VALID_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Visitor batch lookup for their own ticket codes (preserves privacy of other visitors' tickets)
 app.get('/api/tickets/batch', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   const rawCodes = String(req.query.codes ?? '');
   const requested = rawCodes
     .split(',')
@@ -835,6 +873,8 @@ app.get('/api/tickets/batch', (req, res) => {
 
 // Visitor lookup of a specific ticket by ticketCode (preserves privacy of other visitors' tickets)
 app.get('/api/tickets/:code', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   const q = req.params.code.trim().toUpperCase();
   const found = supportTickets.find(
     (t) => t.ticketCode.toUpperCase() === q || t.id.toUpperCase() === q

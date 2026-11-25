@@ -53,9 +53,6 @@ function isAdminPortalPath(pathname: string): boolean {
   return clean === '/adminportal';
 }
 
-const ADMIN_TOKEN_STORAGE_KEY = 'metro_admin_token_v1';
-const ADMIN_EMAIL_STORAGE_KEY = 'metro_admin_email_v1';
-
 function parseUtcUpdatedMs(ts?: string): number {
   if (!ts) return 0;
   const trimmed = ts.trim();
@@ -70,20 +67,8 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<PageRoute>(() =>
     isAdminPortalPath(window.location.pathname) ? 'admin' : 'home'
   );
-  const [adminToken, setAdminToken] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  });
-  const [adminEmail, setAdminEmail] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem(ADMIN_EMAIL_STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  });
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [shipments, setShipments] = useState<Shipment[]>(() => loadCachedShipments());
   const [selectedTrackingNo, setSelectedTrackingNo] = useState<string>('');
   const [alerts, setAlerts] = useState<PushAlert[]>(() => loadCachedAlerts());
@@ -128,25 +113,16 @@ export default function App() {
   selectedTrackingNoRef.current = selectedTrackingNo;
   const myTicketCodesRef = React.useRef(myTicketCodes);
   myTicketCodesRef.current = myTicketCodes;
+  const supportTicketsRef = React.useRef(supportTickets);
+  supportTicketsRef.current = supportTickets;
+  const notifiedReplyIdsRef = React.useRef<Set<string>>(new Set());
 
   const handleAdminAuthenticated = useCallback((token: string, email: string) => {
-    try {
-      sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-      sessionStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, email);
-    } catch {
-      // Ignore storage restrictions
-    }
     setAdminToken(token);
     setAdminEmail(email);
   }, []);
 
   const handleAdminLogout = useCallback(() => {
-    try {
-      sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-      sessionStorage.removeItem(ADMIN_EMAIL_STORAGE_KEY);
-    } catch {
-      // Ignore storage restrictions
-    }
     setAdminToken(null);
     setAdminEmail(null);
   }, []);
@@ -412,7 +388,9 @@ export default function App() {
           upsertTicket(parsed.ticket);
         }
         if (isAdminActive) {
-          const firstReply = parsed.ticket.replies[0]?.text || parsed.ticket.subject;
+          const firstReplyObj = parsed.ticket.replies[0];
+          const firstReply = firstReplyObj?.text || parsed.ticket.subject;
+          if (firstReplyObj?.id) notifiedReplyIdsRef.current.add(firstReplyObj.id);
           setAdminEmailToast({
             ticketId: parsed.ticket.id,
             ticketCode: parsed.ticket.ticketCode,
@@ -449,6 +427,7 @@ export default function App() {
         if (isAdminActive || owned) {
           upsertTicket(parsed.ticket);
         }
+        if (parsed.reply?.id) notifiedReplyIdsRef.current.add(parsed.reply.id);
         if (isAdminActive && parsed.reply?.senderRole === 'visitor') {
           setAdminEmailToast({
             ticketId: parsed.ticket.id,
@@ -534,7 +513,7 @@ export default function App() {
     };
   }, [isOnline, siteSettings.contact.email, triggerAlerts, upsertTicket]);
 
-  // Real-time 2-second sync safety net for active Contact or Admin Inbox sessions (complements 0ms SSE)
+  // Real-time 1.5-second sync safety net for active Contact or Admin Inbox sessions (complements 0ms SSE)
   useEffect(() => {
     if (!isOnline) return;
     const isAdminActive = currentPage === 'admin' && Boolean(adminToken);
@@ -542,6 +521,7 @@ export default function App() {
     if (!isAdminActive && !isContactActive) return;
 
     let cancelled = false;
+    let firstPoll = true;
     const syncActiveTickets = async () => {
       if (cancelled) return;
       if (isAdminActive && adminTokenRef.current) {
@@ -551,14 +531,39 @@ export default function App() {
             cache: 'no-store',
             credentials: 'include',
             headers: {
-              Authorization: `Bearer ${reqToken}`,
+              'X-Requested-With': 'XMLHttpRequest',
               'X-Admin-Token': reqToken,
             },
           });
           if (!cancelled && res.ok) {
             const data = await res.json();
             if (Array.isArray(data.tickets)) {
-              (data.tickets as SupportTicket[]).forEach((t) => upsertTicket(t));
+              const incomingList = data.tickets as SupportTicket[];
+              const existingMap = new Map<string, SupportTicket>(
+                supportTicketsRef.current.map((t) => [t.id, t])
+              );
+              for (const t of incomingList) {
+                const prev = existingMap.get(t.id);
+                const latest = t.replies[t.replies.length - 1];
+                if (
+                  !firstPoll &&
+                  latest &&
+                  latest.senderRole === 'visitor' &&
+                  !notifiedReplyIdsRef.current.has(latest.id) &&
+                  (!prev || prev.replies.length < t.replies.length)
+                ) {
+                  notifiedReplyIdsRef.current.add(latest.id);
+                  setAdminEmailToast({
+                    ticketId: t.id,
+                    ticketCode: t.ticketCode,
+                    senderName: latest.senderName || t.name,
+                    senderEmail: t.email,
+                    subject: t.subject,
+                    text: latest.text,
+                  });
+                }
+                upsertTicket(t);
+              }
             }
           }
         } catch {
@@ -570,21 +575,46 @@ export default function App() {
         ).filter(Boolean);
         if (codes.length === 0) return;
         try {
-          const res = await fetch(`/api/tickets/batch?codes=${encodeURIComponent(codes.join(','))}`);
+          const res = await fetch(`/api/tickets/batch?codes=${encodeURIComponent(codes.join(','))}`, {
+            cache: 'no-store',
+          });
           if (!cancelled && res.ok) {
             const data = await res.json();
             if (Array.isArray(data.tickets)) {
-              (data.tickets as SupportTicket[]).forEach((t) => upsertTicket(t));
+              const incomingList = data.tickets as SupportTicket[];
+              const existingMap = new Map<string, SupportTicket>(
+                supportTicketsRef.current.map((t) => [t.id, t])
+              );
+              for (const t of incomingList) {
+                const prev = existingMap.get(t.id);
+                const latest = t.replies[t.replies.length - 1];
+                if (
+                  !firstPoll &&
+                  latest &&
+                  latest.senderRole === 'admin' &&
+                  !notifiedReplyIdsRef.current.has(latest.id) &&
+                  (!prev || prev.replies.length < t.replies.length)
+                ) {
+                  notifiedReplyIdsRef.current.add(latest.id);
+                  setSupportToast({
+                    ticketCode: t.ticketCode,
+                    senderName: latest.senderName,
+                    text: latest.text,
+                  });
+                }
+                upsertTicket(t);
+              }
             }
           }
         } catch {
           // Ignore transient polling failure
         }
       }
+      firstPoll = false;
     };
 
     syncActiveTickets();
-    const timer = window.setInterval(syncActiveTickets, 2000);
+    const timer = window.setInterval(syncActiveTickets, 1500);
     window.addEventListener('focus', syncActiveTickets);
     return () => {
       cancelled = true;
@@ -601,11 +631,12 @@ export default function App() {
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
+        cache: 'no-store',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(adminToken
-            ? { Authorization: `Bearer ${adminToken}`, 'X-Admin-Token': adminToken }
-            : {}),
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(adminToken ? { 'X-Admin-Token': adminToken } : {}),
         },
         body: JSON.stringify({ actions: queue }),
       });
@@ -647,9 +678,8 @@ export default function App() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(reqToken
-                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
-                : {}),
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(reqToken ? { 'X-Admin-Token': reqToken } : {}),
             },
             body: JSON.stringify({ ...coords, deviationThresholdMeters }),
           });
@@ -769,9 +799,8 @@ export default function App() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(reqToken
-                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
-                : {}),
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(reqToken ? { 'X-Admin-Token': reqToken } : {}),
             },
             body: JSON.stringify({ geofences }),
           });
@@ -879,9 +908,8 @@ export default function App() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(payload.senderRole === 'admin' && reqToken
-                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
-                : {}),
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(payload.senderRole === 'admin' && reqToken ? { 'X-Admin-Token': reqToken } : {}),
             },
             body: JSON.stringify(payload),
           });
@@ -985,9 +1013,8 @@ export default function App() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(reqToken
-                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
-                : {}),
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(reqToken ? { 'X-Admin-Token': reqToken } : {}),
             },
             body: JSON.stringify({ status }),
           });
@@ -1030,9 +1057,8 @@ export default function App() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(reqToken
-                ? { Authorization: `Bearer ${reqToken}`, 'X-Admin-Token': reqToken }
-                : {}),
+              'X-Requested-With': 'XMLHttpRequest',
+              ...(reqToken ? { 'X-Admin-Token': reqToken } : {}),
             },
             body: JSON.stringify(nextSettings),
           });

@@ -354,22 +354,25 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const adminTokenRef = useRef<string | null>(adminToken);
   adminTokenRef.current = adminToken;
+  const sessionVerifiedRef = useRef(false);
 
   const getAdminHeaders = (withJson = false, tokenOverride?: string | null): Record<string, string> => {
     const activeToken = tokenOverride !== undefined ? tokenOverride : adminTokenRef.current;
     return {
+      'X-Requested-With': 'XMLHttpRequest',
       ...(withJson ? { 'Content-Type': 'application/json' } : {}),
-      ...(activeToken
-        ? { Authorization: `Bearer ${activeToken}`, 'X-Admin-Token': activeToken }
-        : {}),
+      ...(activeToken ? { 'X-Admin-Token': activeToken } : {}),
     };
   };
 
-  const handleSessionExpired = (failedToken?: string | null) => {
+  const handleSessionExpired = (failedToken?: string | null, silentIfUnverified = false) => {
     if (failedToken && adminTokenRef.current && adminTokenRef.current !== failedToken) {
       return;
     }
-    setAuthError('Your admin session expired. Please sign in again.');
+    if (!silentIfUnverified || sessionVerifiedRef.current) {
+      setAuthError('Your admin session expired. Please sign in again.');
+    }
+    sessionVerifiedRef.current = false;
     onAdminLogout();
   };
 
@@ -392,6 +395,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       .then((data) => {
         if (cancelled || !data?.ok) return;
         setNeedsSetup(Boolean(data.needsSetup));
+        if (data.authenticated && data.token) {
+          sessionVerifiedRef.current = true;
+          onAdminAuthenticated(data.token, data.email || '');
+        }
       })
       .catch(() => {
         // Keep login form state
@@ -402,7 +409,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [adminToken, isOnline]);
+  }, [adminToken, isOnline, onAdminAuthenticated]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +425,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         method: 'POST',
         cache: 'no-store',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
         body: JSON.stringify({
           email: loginEmail.trim(),
           password: loginPassword,
@@ -439,6 +449,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         setAuthError(data.error || 'Invalid email or password.');
         return;
       }
+      sessionVerifiedRef.current = true;
       setLoginPassword('');
       onAdminAuthenticated(data.token, data.email || loginEmail.trim());
     } catch {
@@ -461,6 +472,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         // Ignore network errors during logout
       }
     }
+    sessionVerifiedRef.current = false;
     setAuthError(null);
     onAdminLogout();
   };
@@ -491,10 +503,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         headers: getAdminHeaders(false, reqToken),
       });
       if (res.status === 401) {
-        handleSessionExpired(reqToken);
+        handleSessionExpired(reqToken, true);
         return;
       }
       if (res.ok) {
+        sessionVerifiedRef.current = true;
         const data = await res.json();
         if (Array.isArray(data.contactMessages)) setContactMessages(data.contactMessages);
         if (Array.isArray(data.returnRequests)) setReturnRequests(data.returnRequests);
@@ -1779,6 +1792,49 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           {/* ================= OVERVIEW TAB ================= */}
           {activeTab === 'overview' && (
             <>
+              {supportTickets.some(
+                (t) =>
+                  t.status !== 'resolved' &&
+                  t.replies[t.replies.length - 1]?.senderRole === 'visitor'
+              ) && (
+                <div className="bg-[#3C2B02] text-[#F2E9D4] border-2 border-[#9D7110] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-[#CD9E34] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-extrabold uppercase tracking-wider text-[#CD9E34]">
+                        Live Emails Waiting in {siteSettings.contact.email} Inbox
+                      </p>
+                      <p className="text-xs text-[#F2E9D4] mt-0.5">
+                        {
+                          supportTickets.filter(
+                            (t) =>
+                              t.status !== 'resolved' &&
+                              t.replies[t.replies.length - 1]?.senderRole === 'visitor'
+                          ).length
+                        }{' '}
+                        conversation(s) awaiting your real-time admin reply.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTicket = supportTickets.find(
+                        (t) =>
+                          t.status !== 'resolved' &&
+                          t.replies[t.replies.length - 1]?.senderRole === 'visitor'
+                      );
+                      if (nextTicket) setSelectedTicketId(nextTicket.id);
+                      setTicketFilter('all');
+                      setActiveTab('inbox');
+                    }}
+                    className="px-4 py-2 bg-[#9D7110] hover:bg-[#CD9E34] hover:text-[#1E1501] text-white text-xs font-extrabold transition-colors shrink-0 cursor-pointer"
+                  >
+                    Open Inbox &amp; Reply Now →
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white border border-neutral-200 p-5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b6b70]">

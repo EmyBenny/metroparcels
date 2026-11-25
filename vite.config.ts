@@ -54,6 +54,14 @@ export default defineConfig(() => {
               handler: 'NetworkOnly',
             },
             {
+              urlPattern: /\/api\/tickets.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /\/api\/stream.*/i,
+              handler: 'NetworkOnly',
+            },
+            {
               urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
               handler: 'NetworkOnly',
             },
@@ -103,7 +111,7 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),
