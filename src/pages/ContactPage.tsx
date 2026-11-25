@@ -31,7 +31,7 @@ interface ContactPageProps {
   onReplyTicket: (
     ticketIdOrCode: string,
     payload: { senderRole: 'visitor' | 'admin'; senderName: string; text: string }
-  ) => Promise<{ ok: boolean; ticket?: SupportTicket }>;
+  ) => Promise<{ ok: boolean; ticket?: SupportTicket; error?: string }>;
   onLookupTicket: (ticketCode: string) => Promise<SupportTicket | null>;
 }
 
@@ -48,7 +48,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   );
   const [selectedTicketId, setSelectedTicketId] = useState<string>(tickets[0]?.id || '');
 
-  // New ticket form
+  // New email / support ticket form
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [trackingNo, setTrackingNo] = useState('');
@@ -70,7 +70,10 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   // Live reply input
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLFormElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedTicket =
     tickets.find((t) => t.id === selectedTicketId) || tickets[0] || null;
@@ -84,6 +87,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [selectedTicket?.replies.length]);
+
+  const openEmailComposer = () => {
+    setError(null);
+    setActiveTab('new');
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    }, 60);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +112,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
         trackingNo: trackingNo.trim() || undefined,
         category,
         priority,
-        subject: subject.trim() || 'Support Request',
+        subject: subject.trim() || 'Email Inquiry',
         message: message.trim(),
       });
       setCreatedBanner({
@@ -110,6 +122,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({
       setMessage('');
       setSelectedTicketId(res.ticket.id);
       setActiveTab('tickets');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to send email right now.');
     } finally {
       setSending(false);
     }
@@ -126,21 +140,26 @@ export const ContactPage: React.FC<ContactPageProps> = ({
       setActiveTab('tickets');
       setLookupCode('');
     } else {
-      setLookupFeedback(`No ticket found for code ${clean}.`);
+      setLookupFeedback(`No thread found for reference code ${clean}.`);
     }
   };
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket || !replyText.trim()) return;
+    setReplyError(null);
     setSendingReply(true);
     try {
-      await onReplyTicket(selectedTicket.id, {
+      const res = await onReplyTicket(selectedTicket.id, {
         senderRole: 'visitor',
         senderName: selectedTicket.name,
         text: replyText.trim(),
       });
-      setReplyText('');
+      if (res.ok) {
+        setReplyText('');
+      } else {
+        setReplyError(res.error || 'Could not send reply. Please try again.');
+      }
     } finally {
       setSendingReply(false);
     }
@@ -157,18 +176,20 @@ export const ContactPage: React.FC<ContactPageProps> = ({
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-[#6b6b70]">
-            Home / Contact &amp; Live Support
+            Home / Contact &amp; Real-Time Email Support
           </span>
-          <h1 className="font-display text-4xl text-[#1d1d1f] mt-2">Say hello &amp; open a ticket</h1>
+          <h1 className="font-display text-4xl text-[#1d1d1f] mt-2">
+            Email {contactSettings.email}
+          </h1>
           <p className="text-sm text-[#6b6b70] mt-1">
-            Submit a support ticket and chat with a Metro Parcel Service operations admin in real time.
+            Send an email directly to <strong className="text-[#1d1d1f]">{contactSettings.email}</strong> — our admin team receives it immediately in the Admin Portal and replies in real time.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setActiveTab('new')}
+            onClick={openEmailComposer}
             className={`px-4 py-2.5 text-xs font-extrabold border inline-flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'new'
                 ? 'bg-[#3C2B02] text-[#CD9E34] border-[#3C2B02]'
@@ -176,7 +197,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             }`}
           >
             <Plus className="w-4 h-4" />
-            <span>Submit New Ticket</span>
+            <span>Compose Email</span>
           </button>
           <button
             type="button"
@@ -188,7 +209,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            <span>My Support Tickets ({tickets.length})</span>
+            <span>My Email Threads ({tickets.length})</span>
           </button>
         </div>
       </div>
@@ -239,17 +260,30 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             </div>
           </div>
 
-          <div className="bg-white border border-neutral-200 p-5 flex gap-4">
-            <Mail className="w-5 h-5 text-[#1d1d1f] shrink-0 mt-0.5" />
-            <div>
-              <h2 className="font-extrabold text-sm">Email</h2>
-              <a
-                href={`mailto:${contactSettings.email}`}
-                className="text-sm text-[#1B6CFF] hover:underline mt-0.5 block break-all"
-              >
-                {contactSettings.email}
-              </a>
+          <div className="bg-white border-2 border-[#3C2B02] p-5 space-y-3">
+            <div className="flex gap-4">
+              <Mail className="w-5 h-5 text-[#9D7110] shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-sm">Company Email</h2>
+                <a
+                  href={`mailto:${contactSettings.email}`}
+                  className="text-sm font-bold text-[#1B6CFF] hover:underline mt-0.5 block break-all"
+                >
+                  {contactSettings.email}
+                </a>
+                <p className="text-[11px] text-[#6b6b70] mt-1">
+                  Deliver directly to our Admin Portal for instant real-time replies.
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={openEmailComposer}
+              className="w-full py-2 px-3 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white text-xs font-extrabold transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send Email to {contactSettings.email}</span>
+            </button>
           </div>
 
           <div className="bg-white border border-neutral-200 p-5 flex gap-4">
@@ -314,8 +348,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <CheckCircle2 className="w-5 h-5 text-[#008a39] shrink-0" />
                 <span>
                   {createdBanner.queuedOffline
-                    ? `Offline Mode: Ticket ${createdBanner.ticketCode} queued and ready to sync when online.`
-                    : `Ticket ${createdBanner.ticketCode} is now live with Metro Parcel Service Support. Replies from Admin appear here in real time.`}
+                    ? `Offline Mode: Email ${createdBanner.ticketCode} queued for ${contactSettings.email} and will sync when online.`
+                    : `Email delivered to ${contactSettings.email} (Ref: ${createdBanner.ticketCode}). Admin replies appear below in real time with no delay.`}
                 </span>
               </div>
               <span className="font-mono-tabular font-extrabold px-2 py-1 bg-white border border-emerald-300 shrink-0">
@@ -325,12 +359,23 @@ export const ContactPage: React.FC<ContactPageProps> = ({
           )}
 
           {activeTab === 'new' && (
-            <form onSubmit={handleSubmit} className="bg-white border border-neutral-200 p-6 sm:p-8 space-y-5">
-              <div>
-                <h2 className="font-display text-2xl text-[#1d1d1f]">Create a Support Ticket</h2>
-                <p className="text-xs text-[#6b6b70] mt-1">
-                  Your ticket receives a private reference code so you and our admin team can message back and forth in real time.
-                </p>
+            <form
+              ref={composerRef}
+              onSubmit={handleSubmit}
+              className="bg-white border border-neutral-200 p-6 sm:p-8 space-y-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-neutral-200">
+                <div>
+                  <h2 className="font-display text-2xl text-[#1d1d1f]">
+                    Send Email to {contactSettings.email}
+                  </h2>
+                  <p className="text-xs text-[#6b6b70] mt-1">
+                    Delivered instantaneously to our Admin Portal. Replies stream back here live with zero delay.
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 bg-[#F2E9D4] border border-[#9D7110] text-[#3C2B02] text-[11px] font-extrabold font-mono-tabular">
+                  To: {contactSettings.email}
+                </span>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
@@ -339,6 +384,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                     Your Name *
                   </label>
                   <input
+                    ref={nameInputRef}
                     id="c-name"
                     type="text"
                     required
@@ -446,7 +492,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 className="px-7 py-3.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white font-extrabold text-sm transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
               >
                 <Send className="w-4 h-4" />
-                <span>{sending ? 'Creating Ticket...' : 'Submit Ticket & Start Live Chat'}</span>
+                <span>
+                  {sending
+                    ? 'Delivering Email...'
+                    : `Send Email to ${contactSettings.email}`}
+                </span>
               </button>
             </form>
           )}
@@ -456,16 +506,16 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               {tickets.length === 0 ? (
                 <div className="p-10 text-center space-y-3">
                   <MessageSquare className="w-8 h-8 text-[#6b6b70] mx-auto" />
-                  <h2 className="font-display text-xl text-[#1d1d1f]">No Support Tickets Yet</h2>
+                  <h2 className="font-display text-xl text-[#1d1d1f]">No Email Threads Yet</h2>
                   <p className="text-xs text-[#6b6b70] max-w-md mx-auto">
-                    Submit a new support ticket or enter your ticket code on the left to chat with Metro Parcel Service Admin in real time.
+                    Send an email to {contactSettings.email} or enter your reference code on the left to view live admin replies.
                   </p>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('new')}
+                    onClick={openEmailComposer}
                     className="px-5 py-2.5 bg-[#9D7110] text-white border border-[#3C2B02] text-xs font-extrabold cursor-pointer"
                   >
-                    Create Your First Ticket
+                    Compose Your First Email
                   </button>
                 </div>
               ) : (
@@ -543,6 +593,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                           <h3 className="font-extrabold text-sm text-[#1d1d1f] mt-1">
                             {selectedTicket.subject}
                           </h3>
+                          <p className="text-[11px] text-[#6b6b70] mt-0.5">
+                            To: <strong>{contactSettings.email}</strong> · From: {selectedTicket.email}
+                          </p>
                         </div>
                         <span className="text-[11px] font-bold text-[#008a39]">
                           {isOnline ? 'Live real-time sync active' : 'Offline queue active'}
@@ -566,7 +619,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                               >
                                 <div className="flex items-center justify-between gap-4 text-[10px] opacity-80 font-bold uppercase tracking-wider">
                                   <span>
-                                    {isVisitor ? rep.senderName : `${rep.senderName} (Admin)`}
+                                    {isVisitor
+                                      ? rep.senderName
+                                      : `${rep.senderName} (${contactSettings.email})`}
                                   </span>
                                   <span className="font-mono-tabular">
                                     {new Date(rep.createdAt).toLocaleTimeString('en-GB', {
@@ -585,6 +640,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                         <div ref={threadEndRef} />
                       </div>
 
+                      {replyError && (
+                        <p className="px-3.5 py-1.5 text-xs font-bold text-[#FF5A1F] bg-red-50 border-t border-red-200">
+                          {replyError}
+                        </p>
+                      )}
+
                       <form
                         onSubmit={handleSendReply}
                         className="p-3.5 bg-white border-t border-neutral-200 flex gap-2"
@@ -593,7 +654,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                           type="text"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Write a real-time reply to Metro Parcel Service support..."
+                          placeholder={`Reply in real time to ${contactSettings.email}...`}
                           className="flex-1 border border-neutral-300 px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#3C2B02]"
                         />
                         <button
@@ -602,7 +663,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                           className="px-5 py-2.5 bg-[#3C2B02] text-[#CD9E34] hover:bg-[#9D7110] hover:text-white transition-colors font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Send className="w-3.5 h-3.5" />
-                          <span>Reply</span>
+                          <span>{sendingReply ? 'Sending...' : 'Reply'}</span>
                         </button>
                       </form>
                     </div>

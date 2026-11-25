@@ -59,10 +59,16 @@ export function loadCachedSettings(): SiteSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SITE_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<SiteSettings>;
+    const cachedEmail = parsed.contact?.email?.trim();
+    const normalizedEmail =
+      !cachedEmail || cachedEmail.toLowerCase() === 'support@metroparcel.demo'
+        ? DEFAULT_SITE_SETTINGS.contact.email
+        : cachedEmail;
     return {
       contact: {
         ...DEFAULT_SITE_SETTINGS.contact,
         ...(parsed.contact || {}),
+        email: normalizedEmail,
         whatsapp: parsed.contact?.whatsapp || DEFAULT_SITE_SETTINGS.contact.whatsapp,
       },
       about: {

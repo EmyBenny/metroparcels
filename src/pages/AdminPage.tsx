@@ -114,11 +114,12 @@ interface AdminPageProps {
   onReplyTicket: (
     ticketIdOrCode: string,
     payload: { senderRole: 'visitor' | 'admin'; senderName: string; text: string }
-  ) => Promise<{ ok: boolean; ticket?: SupportTicket }>;
+  ) => Promise<{ ok: boolean; ticket?: SupportTicket; error?: string }>;
   onUpdateTicketStatus: (
     ticketId: string,
     status: SupportTicket['status']
   ) => Promise<{ ok: boolean; ticket?: SupportTicket }>;
+  openTicketFocus?: { ticketId: string; nonce: number } | null;
 }
 
 const STATUS_OPTIONS = [
@@ -174,6 +175,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onTicketsSync,
   onReplyTicket,
   onUpdateTicketStatus,
+  openTicketFocus,
 }) => {
   const [authStatusLoading, setAuthStatusLoading] = useState(!adminToken);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -264,7 +266,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     destLng: '-3.1883',
     senderName: 'Metro Parcel Service Dispatch',
     senderAddress: '45 King William St, London EC4N 7DZ',
-    senderEmail: 'dispatch@metroparcel.demo',
+    senderEmail: 'dispatch@metroparcel.com',
     senderPhone: '+44 20 7946 0180',
     receiverName: 'Claire Thornton',
     receiverAddress: '18 Princes Street, Edinburgh EH2 2AN',
@@ -524,6 +526,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       setSelectedTicketId(supportTickets[0].id);
     }
   }, [supportTickets, selectedTicketId]);
+
+  useEffect(() => {
+    if (openTicketFocus?.ticketId) {
+      setActiveTab('inbox');
+      setTicketFilter('all');
+      setSelectedTicketId(openTicketFocus.ticketId);
+    }
+  }, [openTicketFocus?.ticketId, openTicketFocus?.nonce]);
 
   useEffect(() => {
     if (activeTab === 'inbox' && activeTicket?.replies.length) {
@@ -1092,7 +1102,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setReplySending(false);
     if (result.ok) {
       setAdminReplyText('');
-      showToast(`Real-time reply sent to ${activeTicket.ticketCode}`);
+      showToast(`Reply delivered in real time to ${activeTicket.email} (${activeTicket.ticketCode})`);
+    } else {
+      showToast(result.error || 'Could not send reply. Please try again.');
     }
   };
 
@@ -1363,7 +1375,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'alerts', label: 'Push Alerts', icon: BellRing, badge: metrics.unreadAlerts },
     { id: 'receipts', label: 'Payments & Receipts', icon: Receipt },
     { id: 'analytics', label: 'Fleet Analytics', icon: LineChart },
-    { id: 'inbox', label: 'Support Tickets & Returns', icon: Inbox, badge: metrics.openInbox },
+    { id: 'inbox', label: 'Email & Support Inbox', icon: Inbox, badge: metrics.openInbox },
     { id: 'content', label: 'Site Content & Contact', icon: Globe },
     { id: 'system', label: 'Business & Offline Sync', icon: Building2, badge: offlineQueue.length },
   ];
@@ -2626,11 +2638,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="font-extrabold text-base text-[#1d1d1f] flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-[#1B6CFF]" />
-                      <span>Real-Time Support Tickets ({supportTickets.length})</span>
+                      <Mail className="w-4 h-4 text-[#9D7110]" />
+                      <span>
+                        Email &amp; Live Support Inbox ({siteSettings.contact.email}) ·{' '}
+                        {supportTickets.length}
+                      </span>
                     </h2>
                     <p className="text-xs text-[#6b6b70]">
-                      Replies stream instantly to visitors in real time over SSE without page refresh.
+                      Messages sent to <strong>{siteSettings.contact.email}</strong> arrive here immediately. Reply below to deliver back to the user in real time.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -2745,7 +2760,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 </span>
                               </div>
                               <p className="text-[11px] text-[#6b6b70] mt-1">
-                                Visitor: <strong>{activeTicket.name}</strong> ({activeTicket.email})
+                                From: <strong>{activeTicket.name}</strong> ({activeTicket.email}) · To:{' '}
+                                <strong>{siteSettings.contact.email}</strong>
                                 {activeTicket.trackingNo ? (
                                   <>
                                     {' · Parcel '}

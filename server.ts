@@ -259,7 +259,22 @@ let shipments: Shipment[] =
 let alerts: PushAlert[] = Array.isArray(persistedFleet.alerts)
   ? persistedFleet.alerts
   : structuredClone(SEED_ALERTS);
-let siteSettings: SiteSettings = persistedFleet.siteSettings ?? structuredClone(DEFAULT_SITE_SETTINGS);
+const rawLoadedSettings = persistedFleet.siteSettings ?? structuredClone(DEFAULT_SITE_SETTINGS);
+const migratedEmail =
+  !rawLoadedSettings.contact?.email ||
+  rawLoadedSettings.contact.email.trim().toLowerCase() === 'support@metroparcel.demo'
+    ? 'support@metroparcel.com'
+    : rawLoadedSettings.contact.email;
+
+let siteSettings: SiteSettings = {
+  ...structuredClone(DEFAULT_SITE_SETTINGS),
+  ...rawLoadedSettings,
+  contact: {
+    ...DEFAULT_SITE_SETTINGS.contact,
+    ...(rawLoadedSettings.contact || {}),
+    email: migratedEmail,
+  },
+};
 let supportTickets: SupportTicket[] = Array.isArray(persistedFleet.supportTickets)
   ? persistedFleet.supportTickets
   : structuredClone(SEED_SUPPORT_TICKETS);
@@ -425,11 +440,15 @@ app.use('/api/admin', (req, res, next) => {
 });
 
 app.get('/api/stream/tracking', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Content-Encoding', 'none');
+  res.socket?.setNoDelay?.(true);
   res.flushHeaders?.();
 
+  res.write(`: stream-open\n\n`);
   res.write(`event: connected\ndata: ${JSON.stringify({ ok: true, count: shipments.length })}\n\n`);
   sseClients.add(res);
 
@@ -668,6 +687,7 @@ app.put('/api/admin/settings', (req, res) => {
     },
   };
 
+  persistFleetState();
   broadcastSSE('settings_updated', { settings: siteSettings });
   res.json({ ok: true, settings: siteSettings });
 });
@@ -719,6 +739,27 @@ function createSupportTicketRecord(input: {
   };
 }
 
+const VALID_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Visitor batch lookup for their own ticket codes (preserves privacy of other visitors' tickets)
+app.get('/api/tickets/batch', (req, res) => {
+  const rawCodes = String(req.query.codes ?? '');
+  const requested = rawCodes
+    .split(',')
+    .map((c) => c.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 30);
+  if (requested.length === 0) {
+    res.json({ ok: true, tickets: [] });
+    return;
+  }
+  const codeSet = new Set(requested);
+  const matched = supportTickets.filter(
+    (t) => codeSet.has(t.ticketCode.toUpperCase()) || codeSet.has(t.id.toUpperCase())
+  );
+  res.json({ ok: true, tickets: matched });
+});
+
 // Visitor lookup of a specific ticket by ticketCode (preserves privacy of other visitors' tickets)
 app.get('/api/tickets/:code', (req, res) => {
   const q = req.params.code.trim().toUpperCase();
@@ -734,11 +775,26 @@ app.get('/api/tickets/:code', (req, res) => {
 
 app.post('/api/tickets', (req, res) => {
   const { name, email, subject, message, trackingNo, category, priority } = req.body ?? {};
-  if (!name || !email || !message) {
+  const cleanName = String(name ?? '').trim();
+  const cleanEmail = String(email ?? '').trim();
+  const cleanMessage = String(message ?? '').trim();
+  if (!cleanName || !cleanEmail || !cleanMessage) {
     res.status(400).json({ ok: false, error: 'Name, email, and message are required' });
     return;
   }
-  const ticket = createSupportTicketRecord({ name, email, subject, message, trackingNo, category, priority });
+  if (!VALID_EMAIL_REGEX.test(cleanEmail)) {
+    res.status(400).json({ ok: false, error: 'Please enter a valid email address' });
+    return;
+  }
+  const ticket = createSupportTicketRecord({
+    name: cleanName,
+    email: cleanEmail,
+    subject,
+    message: cleanMessage,
+    trackingNo,
+    category,
+    priority,
+  });
   supportTickets = [ticket, ...supportTickets];
 
   const legacyEntry: ContactMessage = {
@@ -752,6 +808,7 @@ app.post('/api/tickets', (req, res) => {
   };
   contactMessages = [legacyEntry, ...contactMessages];
 
+  persistFleetState();
   broadcastSSE('ticket_created', { ticket });
   broadcastSSE('admin_contact', { entry: legacyEntry });
   res.status(201).json({ ok: true, ticket });
@@ -807,6 +864,7 @@ app.post('/api/tickets/:id/replies', (req, res) => {
   };
 
   supportTickets[idx] = updatedTicket;
+  persistFleetState();
   broadcastSSE('ticket_reply', { ticket: updatedTicket, reply });
   res.status(201).json({ ok: true, ticket: updatedTicket, reply });
 });
@@ -832,30 +890,47 @@ app.patch('/api/admin/tickets/:id', (req, res) => {
     status: nextStatus,
     updatedAt: new Date().toISOString(),
   };
+  persistFleetState();
   broadcastSSE('ticket_updated', { ticket: supportTickets[idx] });
   res.json({ ok: true, ticket: supportTickets[idx] });
 });
 
 app.post('/api/contact', (req, res) => {
   const { name, email, subject, message, trackingNo, category, priority } = req.body ?? {};
-  if (!name || !email || !message) {
+  const cleanName = String(name ?? '').trim();
+  const cleanEmail = String(email ?? '').trim();
+  const cleanMessage = String(message ?? '').trim();
+  if (!cleanName || !cleanEmail || !cleanMessage) {
     res.status(400).json({ ok: false, error: 'Name, email, and message are required' });
+    return;
+  }
+  if (!VALID_EMAIL_REGEX.test(cleanEmail)) {
+    res.status(400).json({ ok: false, error: 'Please enter a valid email address' });
     return;
   }
   const entry: ContactMessage = {
     id: `msg-${Date.now()}`,
-    name: String(name),
-    email: String(email),
-    subject: String(subject || 'General inquiry'),
-    message: String(message),
+    name: cleanName.slice(0, 120),
+    email: cleanEmail.slice(0, 150),
+    subject: String(subject || 'General inquiry').trim().slice(0, 200),
+    message: cleanMessage.slice(0, 2000),
     createdAt: new Date().toISOString(),
     status: 'open',
   };
   contactMessages = [entry, ...contactMessages];
 
-  const ticket = createSupportTicketRecord({ name, email, subject, message, trackingNo, category, priority });
+  const ticket = createSupportTicketRecord({
+    name: cleanName,
+    email: cleanEmail,
+    subject,
+    message: cleanMessage,
+    trackingNo,
+    category,
+    priority,
+  });
   supportTickets = [ticket, ...supportTickets];
 
+  persistFleetState();
   broadcastSSE('admin_contact', { entry });
   broadcastSSE('ticket_created', { ticket });
   res.status(201).json({ ok: true, entry, ticket });
@@ -908,6 +983,7 @@ app.post('/api/sync', (req, res) => {
       }
     }
   }
+  persistFleetState();
   res.json({ ok: true, syncedCount: processedIds.length, processedIds });
 });
 
@@ -1331,12 +1407,14 @@ app.post('/api/admin/alerts', (req, res) => {
     lng: target?.current.lng ?? -0.1276,
   };
   alerts = [alert, ...alerts].slice(0, 50);
+  persistFleetState();
   broadcastSSE('alert', { alert });
   res.status(201).json({ ok: true, alert });
 });
 
 app.patch('/api/admin/alerts/read-all', (_req, res) => {
   alerts = alerts.map((a) => ({ ...a, read: true }));
+  persistFleetState();
   res.json({ ok: true, alerts });
 });
 
@@ -1356,6 +1434,7 @@ app.patch('/api/admin/contact/:id', (req, res) => {
     status: status === 'resolved' ? 'resolved' : 'open',
     adminNote: adminNote !== undefined ? String(adminNote) : contactMessages[idx].adminNote,
   };
+  persistFleetState();
   res.json({ ok: true, entry: contactMessages[idx] });
 });
 
@@ -1378,6 +1457,7 @@ app.post('/api/admin/returns', (req, res) => {
     createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
   };
   returnRequests = [entry, ...returnRequests];
+  persistFleetState();
   res.status(201).json({ ok: true, entry });
 });
 
@@ -1390,6 +1470,7 @@ app.patch('/api/admin/returns/:id', (req, res) => {
   const { status } = req.body ?? {};
   if (status) {
     returnRequests[idx] = { ...returnRequests[idx], status };
+    persistFleetState();
   }
   res.json({ ok: true, entry: returnRequests[idx] });
 });

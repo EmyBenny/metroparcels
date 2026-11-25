@@ -96,6 +96,18 @@ export default function App() {
     senderName: string;
     text: string;
   } | null>(null);
+  const [adminEmailToast, setAdminEmailToast] = useState<{
+    ticketId: string;
+    ticketCode: string;
+    senderName: string;
+    senderEmail: string;
+    subject: string;
+    text: string;
+  } | null>(null);
+  const [adminTicketFocus, setAdminTicketFocus] = useState<{
+    ticketId: string;
+    nonce: number;
+  } | null>(null);
   const [alertsDrawerOpen, setAlertsDrawerOpen] = useState(false);
 
   const [simulatedOffline, setSimulatedOffline] = useState(false);
@@ -114,6 +126,8 @@ export default function App() {
   adminTokenRef.current = adminToken;
   const selectedTrackingNoRef = React.useRef(selectedTrackingNo);
   selectedTrackingNoRef.current = selectedTrackingNo;
+  const myTicketCodesRef = React.useRef(myTicketCodes);
+  myTicketCodesRef.current = myTicketCodes;
 
   const handleAdminAuthenticated = useCallback((token: string, email: string) => {
     try {
@@ -390,9 +404,31 @@ export default function App() {
       try {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
-        const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
+        const codeUpper = parsed.ticket.ticketCode.toUpperCase();
+        const owned =
+          myTicketCodesRef.current.includes(codeUpper) || loadMyTicketCodes().includes(codeUpper);
+        const isAdminActive = currentPageRef.current === 'admin' && Boolean(adminTokenRef.current);
+        if (isAdminActive || owned) {
           upsertTicket(parsed.ticket);
+        }
+        if (isAdminActive) {
+          const firstReply = parsed.ticket.replies[0]?.text || parsed.ticket.subject;
+          setAdminEmailToast({
+            ticketId: parsed.ticket.id,
+            ticketCode: parsed.ticket.ticketCode,
+            senderName: parsed.ticket.name,
+            senderEmail: parsed.ticket.email,
+            subject: parsed.ticket.subject,
+            text: firstReply,
+          });
+          dispatchSystemPushNotification(
+            `New Email from ${parsed.ticket.name}`,
+            `${parsed.ticket.subject}: ${firstReply}`,
+            `adm-email-${parsed.ticket.id}`
+          );
+          setTimeout(() => {
+            setAdminEmailToast((curr) => (curr?.ticketId === parsed.ticket.id ? null : curr));
+          }, 8000);
         }
       } catch {
         // Ignore
@@ -406,23 +442,52 @@ export default function App() {
           reply: SupportReply;
         };
         if (!parsed.ticket) return;
-        const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
-        if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
+        const codeUpper = parsed.ticket.ticketCode.toUpperCase();
+        const owned =
+          myTicketCodesRef.current.includes(codeUpper) || loadMyTicketCodes().includes(codeUpper);
+        const isAdminActive = currentPageRef.current === 'admin' && Boolean(adminTokenRef.current);
+        if (isAdminActive || owned) {
           upsertTicket(parsed.ticket);
         }
-        if (parsed.reply?.senderRole === 'admin' && owned && currentPageRef.current !== 'admin') {
+        if (isAdminActive && parsed.reply?.senderRole === 'visitor') {
+          setAdminEmailToast({
+            ticketId: parsed.ticket.id,
+            ticketCode: parsed.ticket.ticketCode,
+            senderName: parsed.reply.senderName || parsed.ticket.name,
+            senderEmail: parsed.ticket.email,
+            subject: parsed.ticket.subject,
+            text: parsed.reply.text,
+          });
+          dispatchSystemPushNotification(
+            `Reply from ${parsed.reply.senderName || parsed.ticket.name}`,
+            parsed.reply.text,
+            `adm-rep-${parsed.reply.id}`
+          );
+          setTimeout(() => {
+            setAdminEmailToast((curr) =>
+              curr?.ticketCode === parsed.ticket.ticketCode && curr?.text === parsed.reply.text
+                ? null
+                : curr
+            );
+          }, 8000);
+        } else if (parsed.reply?.senderRole === 'admin' && owned && currentPageRef.current !== 'admin') {
           setSupportToast({
             ticketCode: parsed.ticket.ticketCode,
             senderName: parsed.reply.senderName,
             text: parsed.reply.text,
           });
+          dispatchSystemPushNotification(
+            `Reply from ${siteSettings.contact.email}`,
+            parsed.reply.text,
+            `vis-rep-${parsed.reply.id}`
+          );
           setTimeout(() => {
             setSupportToast((curr) =>
               curr?.ticketCode === parsed.ticket.ticketCode && curr?.text === parsed.reply.text
                 ? null
                 : curr
             );
-          }, 7000);
+          }, 8000);
         }
       } catch {
         // Ignore
@@ -433,7 +498,9 @@ export default function App() {
       try {
         const parsed = JSON.parse((ev as MessageEvent).data) as { ticket: SupportTicket };
         if (!parsed.ticket) return;
-        const owned = loadMyTicketCodes().includes(parsed.ticket.ticketCode.toUpperCase());
+        const codeUpper = parsed.ticket.ticketCode.toUpperCase();
+        const owned =
+          myTicketCodesRef.current.includes(codeUpper) || loadMyTicketCodes().includes(codeUpper);
         if ((currentPageRef.current === 'admin' && Boolean(adminTokenRef.current)) || owned) {
           upsertTicket(parsed.ticket);
         }
@@ -465,7 +532,63 @@ export default function App() {
       cancelled = true;
       sse.close();
     };
-  }, [isOnline, triggerAlerts, upsertTicket]);
+  }, [isOnline, siteSettings.contact.email, triggerAlerts, upsertTicket]);
+
+  // Real-time 2-second sync safety net for active Contact or Admin Inbox sessions (complements 0ms SSE)
+  useEffect(() => {
+    if (!isOnline) return;
+    const isAdminActive = currentPage === 'admin' && Boolean(adminToken);
+    const isContactActive = currentPage === 'contact';
+    if (!isAdminActive && !isContactActive) return;
+
+    let cancelled = false;
+    const syncActiveTickets = async () => {
+      if (cancelled) return;
+      if (isAdminActive && adminTokenRef.current) {
+        try {
+          const res = await fetch('/api/admin/tickets', {
+            headers: {
+              Authorization: `Bearer ${adminTokenRef.current}`,
+              'X-Admin-Token': adminTokenRef.current,
+            },
+          });
+          if (!cancelled && res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.tickets)) {
+              (data.tickets as SupportTicket[]).forEach((t) => upsertTicket(t));
+            }
+          }
+        } catch {
+          // Ignore transient polling failure
+        }
+      } else if (isContactActive) {
+        const codes = Array.from(
+          new Set([...myTicketCodesRef.current, ...loadMyTicketCodes()].map((c) => c.toUpperCase()))
+        ).filter(Boolean);
+        if (codes.length === 0) return;
+        try {
+          const res = await fetch(`/api/tickets/batch?codes=${encodeURIComponent(codes.join(','))}`);
+          if (!cancelled && res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.tickets)) {
+              (data.tickets as SupportTicket[]).forEach((t) => upsertTicket(t));
+            }
+          }
+        } catch {
+          // Ignore transient polling failure
+        }
+      }
+    };
+
+    syncActiveTickets();
+    const timer = window.setInterval(syncActiveTickets, 2000);
+    window.addEventListener('focus', syncActiveTickets);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', syncActiveTickets);
+    };
+  }, [adminToken, currentPage, isOnline, upsertTicket]);
 
   // Flush queued offline actions automatically when back online
   const syncOfflineQueue = useCallback(async () => {
@@ -672,23 +795,27 @@ export default function App() {
       priority?: SupportTicket['priority'];
     }): Promise<{ queuedOffline: boolean; ticket: SupportTicket }> => {
       if (isOnline) {
+        let res: Response | null = null;
         try {
-          const res = await fetch('/api/tickets', {
+          res = await fetch('/api/tickets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.ticket) {
-              const t = data.ticket as SupportTicket;
-              setMyTicketCodes(addMyTicketCode(t.ticketCode));
-              upsertTicket(t);
-              return { queuedOffline: false, ticket: t };
-            }
-          }
         } catch {
-          // Queue offline
+          res = null;
+        }
+        if (res) {
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ticket) {
+            const t = data.ticket as SupportTicket;
+            setMyTicketCodes(addMyTicketCode(t.ticketCode));
+            upsertTicket(t);
+            return { queuedOffline: false, ticket: t };
+          }
+          if (res.status >= 400 && res.status < 500) {
+            throw new Error(data.error || 'Could not send email. Please check your details.');
+          }
         }
       }
 
@@ -728,10 +855,11 @@ export default function App() {
     async (
       ticketIdOrCode: string,
       payload: { senderRole: 'visitor' | 'admin'; senderName: string; text: string }
-    ): Promise<{ ok: boolean; ticket?: SupportTicket }> => {
+    ): Promise<{ ok: boolean; ticket?: SupportTicket; error?: string }> => {
       if (isOnline) {
+        let res: Response | null = null;
         try {
-          const res = await fetch(`/api/tickets/${encodeURIComponent(ticketIdOrCode)}/replies`, {
+          res = await fetch(`/api/tickets/${encodeURIComponent(ticketIdOrCode)}/replies`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -741,19 +869,20 @@ export default function App() {
             },
             body: JSON.stringify(payload),
           });
+        } catch {
+          res = null;
+        }
+        if (res) {
           if (res.status === 401 && payload.senderRole === 'admin') {
             handleAdminLogout();
-            return { ok: false };
+            return { ok: false, error: 'Admin session expired. Please sign in again.' };
           }
-          if (res.ok) {
-            const data = await res.json();
-            if (data.ticket) {
-              upsertTicket(data.ticket as SupportTicket);
-              return { ok: true, ticket: data.ticket as SupportTicket };
-            }
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ticket) {
+            upsertTicket(data.ticket as SupportTicket);
+            return { ok: true, ticket: data.ticket as SupportTicket };
           }
-        } catch {
-          // Fallback offline
+          return { ok: false, error: data.error || 'Could not deliver reply.' };
         }
       }
 
@@ -1134,6 +1263,7 @@ export default function App() {
             onTicketsSync={setSupportTickets}
             onReplyTicket={handleReplyTicket}
             onUpdateTicketStatus={handleUpdateTicketStatus}
+            openTicketFocus={adminTicketFocus}
           />
         )}
       </main>
@@ -1147,6 +1277,46 @@ export default function App() {
         />
       )}
 
+      {/* Real-Time Incoming Email Toast for Admin Portal */}
+      {isAdminView && adminEmailToast && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-4 right-4 sm:right-auto sm:w-[420px] z-50 bg-[#3C2B02] text-[#F2E9D4] border-2 border-[#CD9E34] shadow-[6px_6px_0_#1E1501] p-4 flex items-start gap-3 no-print"
+        >
+          <MessageSquare className="w-5 h-5 text-[#CD9E34] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-extrabold text-[#CD9E34]">
+              New Email to {siteSettings.contact.email} · {adminEmailToast.ticketCode}
+            </p>
+            <p className="text-xs font-bold text-white mt-0.5 truncate">
+              From: {adminEmailToast.senderName} ({adminEmailToast.senderEmail})
+            </p>
+            <p className="text-xs text-[#F2E9D4]/90 mt-1 line-clamp-2">{adminEmailToast.text}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setAdminTicketFocus({
+                  ticketId: adminEmailToast.ticketId,
+                  nonce: Date.now(),
+                });
+                setAdminEmailToast(null);
+              }}
+              className="mt-2 text-[11px] font-extrabold text-[#CD9E34] underline cursor-pointer"
+            >
+              Open Inbox &amp; Reply Now →
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAdminEmailToast(null)}
+            aria-label="Dismiss incoming email alert"
+            className="text-neutral-300 hover:text-white cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Real-Time Support Reply Notification Toast for Visitors */}
       {supportToast && (
         <div
@@ -1156,7 +1326,7 @@ export default function App() {
           <MessageSquare className="w-5 h-5 text-[#1B6CFF] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-extrabold text-[#1d1d1f]">
-              Live Support Reply · {supportToast.ticketCode}
+              Reply from {siteSettings.contact.email} · {supportToast.ticketCode}
             </p>
             <p className="text-xs text-[#6b6b70] mt-1 line-clamp-2">
               {supportToast.senderName}: {supportToast.text}
@@ -1169,7 +1339,7 @@ export default function App() {
               }}
               className="mt-2 text-[11px] font-extrabold text-[#1B6CFF] underline cursor-pointer"
             >
-              Open Live Support Thread →
+              Open Live Email Thread →
             </button>
           </div>
           <button

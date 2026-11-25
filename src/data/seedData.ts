@@ -478,7 +478,7 @@ export const ANALYTICS_DAILY_VOLUME = [
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   contact: {
     address: '123 Demo Parcel Lane, Testford, London, ZZ99 9ZZ, United Kingdom',
-    email: 'support@metroparcel.demo',
+    email: 'support@metroparcel.com',
     phone: '+1234567890',
     whatsapp: '+447447484073',
     supportHours: 'Chat & phone: 24/7',

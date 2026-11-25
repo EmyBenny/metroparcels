@@ -47,7 +47,7 @@ export const TrackPage: React.FC<TrackPageProps> = ({
   alerts,
   isOnline,
   quotaExceeded,
-  supportEmail = 'support@metroparcel.demo',
+  supportEmail = 'support@metroparcel.com',
   contactSettings,
   isAdminAuthenticated = false,
   onBackToAdmin,

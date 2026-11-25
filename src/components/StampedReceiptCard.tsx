@@ -58,7 +58,7 @@ export const StampedReceiptCard: React.FC<StampedReceiptCardProps> = ({
           <p className="font-extrabold text-sm text-[#1d1d1f]">{shipment.sender.name}</p>
           <p className="text-[#6b6b70] mt-0.5">{shipment.sender.address}</p>
           <p className="text-[#6b6b70]">
-            {shipment.sender.email || 'sender@metroparcel.demo'} ·{' '}
+            {shipment.sender.email || 'sender@metroparcel.com'} ·{' '}
             {shipment.sender.phone || '+44 7700 900123'}
           </p>
         </div>
