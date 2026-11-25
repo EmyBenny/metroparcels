@@ -354,7 +354,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const adminTokenRef = useRef<string | null>(adminToken);
   adminTokenRef.current = adminToken;
-  const sessionVerifiedRef = useRef(false);
 
   const getAdminHeaders = (withJson = false, tokenOverride?: string | null): Record<string, string> => {
     const activeToken = tokenOverride !== undefined ? tokenOverride : adminTokenRef.current;
@@ -365,15 +364,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     };
   };
 
-  const handleSessionExpired = (failedToken?: string | null, silentIfUnverified = false) => {
+  const resyncAdminSession = async (failedToken?: string | null): Promise<string | null> => {
     if (failedToken && adminTokenRef.current && adminTokenRef.current !== failedToken) {
-      return;
+      return adminTokenRef.current;
     }
-    if (!silentIfUnverified || sessionVerifiedRef.current) {
-      setAuthError('Your admin session expired. Please sign in again.');
+    try {
+      const r = await fetch('/api/admin/auth/status', {
+        cache: 'no-store',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      if (!r.ok) return null;
+      const data = await r.json().catch(() => null);
+      if (data?.ok && data.authenticated && data.token) {
+        onAdminAuthenticated(data.token, data.email || '');
+        return data.token as string;
+      }
+    } catch {
+      // Retain active logged-in UI state without kicking user out
     }
-    sessionVerifiedRef.current = false;
-    onAdminLogout();
+    return null;
   };
 
   useEffect(() => {
@@ -396,7 +406,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         if (cancelled || !data?.ok) return;
         setNeedsSetup(Boolean(data.needsSetup));
         if (data.authenticated && data.token) {
-          sessionVerifiedRef.current = true;
           onAdminAuthenticated(data.token, data.email || '');
         }
       })
@@ -449,7 +458,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         setAuthError(data.error || 'Invalid email or password.');
         return;
       }
-      sessionVerifiedRef.current = true;
+      setAuthError(null);
       setLoginPassword('');
       onAdminAuthenticated(data.token, data.email || loginEmail.trim());
     } catch {
@@ -472,7 +481,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         // Ignore network errors during logout
       }
     }
-    sessionVerifiedRef.current = false;
     setAuthError(null);
     onAdminLogout();
   };
@@ -493,21 +501,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }, 2000);
   };
 
-  const fetchAdminOverview = async () => {
-    const reqToken = adminTokenRef.current;
+  const fetchAdminOverview = async (explicitToken?: string) => {
+    const reqToken = explicitToken || adminTokenRef.current;
     if (!isOnline || !reqToken) return;
     try {
-      const res = await fetch('/api/admin/overview', {
+      let res = await fetch('/api/admin/overview', {
         cache: 'no-store',
         credentials: 'include',
         headers: getAdminHeaders(false, reqToken),
       });
       if (res.status === 401) {
-        handleSessionExpired(reqToken, true);
-        return;
+        const refreshed = await resyncAdminSession(reqToken);
+        if (refreshed) {
+          res = await fetch('/api/admin/overview', {
+            cache: 'no-store',
+            credentials: 'include',
+            headers: getAdminHeaders(false, refreshed),
+          });
+        }
       }
       if (res.ok) {
-        sessionVerifiedRef.current = true;
         const data = await res.json();
         if (Array.isArray(data.contactMessages)) setContactMessages(data.contactMessages);
         if (Array.isArray(data.returnRequests)) setReturnRequests(data.returnRequests);
@@ -520,7 +533,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   useEffect(() => {
     if (adminToken) {
-      fetchAdminOverview();
+      fetchAdminOverview(adminToken);
     }
   }, [isOnline, adminToken]);
 
@@ -695,7 +708,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
     if (isOnline && reqToken) {
       try {
-        const res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
+        let res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
           method: 'PATCH',
           cache: 'no-store',
           credentials: 'include',
@@ -703,8 +716,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(payload),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch(`/api/admin/shipments/${encodeURIComponent(editingTrackingNo)}`, {
+              method: 'PATCH',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify(payload),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -849,7 +870,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
     if (isOnline && reqToken) {
       try {
-        const res = await fetch('/api/admin/shipments', {
+        let res = await fetch('/api/admin/shipments', {
           method: 'POST',
           cache: 'no-store',
           credentials: 'include',
@@ -857,8 +878,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(payload),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch('/api/admin/shipments', {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify(payload),
+            });
+          }
         }
         const data = await res.json();
         if (res.ok && data.shipment) {
@@ -980,15 +1009,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
+        let res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'DELETE',
           cache: 'no-store',
           credentials: 'include',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
+              method: 'DELETE',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(false, refreshed),
+            });
+          }
         }
       } catch {
         // Proceed with local removal
@@ -1012,7 +1048,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
+        let res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
           method: 'PATCH',
           cache: 'no-store',
           credentials: 'include',
@@ -1020,8 +1056,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ paymentState }),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch(`/api/admin/shipments/${encodeURIComponent(trackingNo)}`, {
+              method: 'PATCH',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify({ paymentState }),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -1059,7 +1103,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch('/api/admin/alerts', {
+        let res = await fetch('/api/admin/alerts', {
           method: 'POST',
           cache: 'no-store',
           credentials: 'include',
@@ -1067,8 +1111,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify(broadcastForm),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch('/api/admin/alerts', {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify(broadcastForm),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -1100,7 +1152,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
+        let res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
           method: 'PATCH',
           cache: 'no-store',
           credentials: 'include',
@@ -1108,8 +1160,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ status: nextStatus, adminNote: note }),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch(`/api/admin/contact/${encodeURIComponent(msg.id)}`, {
+              method: 'PATCH',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify({ status: nextStatus, adminNote: note }),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -1217,7 +1277,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       `RET-UK-${Math.floor(1000 + Math.random() * 8999)}`;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch('/api/admin/returns', {
+        let res = await fetch('/api/admin/returns', {
           method: 'POST',
           cache: 'no-store',
           credentials: 'include',
@@ -1229,8 +1289,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           }),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch('/api/admin/returns', {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify({
+                code,
+                retailer: newReturnForm.retailer,
+                dropPoint: newReturnForm.dropPoint,
+              }),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -1263,7 +1335,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
+        let res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
           method: 'PATCH',
           cache: 'no-store',
           credentials: 'include',
@@ -1271,8 +1343,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           body: JSON.stringify({ status: next }),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch(`/api/admin/returns/${encodeURIComponent(ret.id)}`, {
+              method: 'PATCH',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify({ status: next }),
+            });
+          }
         }
       } catch {
         // Local update
@@ -1296,7 +1376,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         line.split(',').map((s) => s.trim());
       if (!originCity || !destCity) continue;
       try {
-        const res = await fetch('/api/admin/shipments', {
+        let res = await fetch('/api/admin/shipments', {
           method: 'POST',
           cache: 'no-store',
           credentials: 'include',
@@ -1312,8 +1392,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           }),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch('/api/admin/shipments', {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(true, refreshed),
+              body: JSON.stringify({
+                trackingNo,
+                originCity,
+                destCity,
+                receiverName: receiverName || 'Batch Recipient',
+                service: service || 'Standard',
+                weightKg: Number(weightKg) || 2.0,
+                totalFee: Number(totalFee) || 19.99,
+              }),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();
@@ -1332,15 +1428,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const reqToken = adminToken;
     if (isOnline && reqToken) {
       try {
-        const res = await fetch('/api/admin/reset', {
+        let res = await fetch('/api/admin/reset', {
           method: 'POST',
           cache: 'no-store',
           credentials: 'include',
           headers: getAdminHeaders(),
         });
         if (res.status === 401) {
-          handleSessionExpired(reqToken);
-          return;
+          const refreshed = await resyncAdminSession(reqToken);
+          if (refreshed) {
+            res = await fetch('/api/admin/reset', {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: getAdminHeaders(false, refreshed),
+            });
+          }
         }
         if (res.ok) {
           const data = await res.json();

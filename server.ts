@@ -44,13 +44,14 @@ function isSafeMediaUrl(url: string): boolean {
 }
 
 // ======================== ADMIN AUTHENTICATION ========================
-const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PERSISTENT_COOKIE_MAX_AGE_SECONDS = 10 * 365 * 24 * 60 * 60;
 const ADMIN_COOKIE_NAME = 'metro_admin_session';
 const AUTH_STATE_FILE = path.join(os.tmpdir(), 'metro-parcel-admin-auth.json');
 
 interface PersistedAuthState {
   sessionSecret?: string;
   claimedAdmin?: { email: string; salt: string; hashHex: string };
+  revokedBeforeMs?: number;
 }
 
 function readPersistedAuthState(): PersistedAuthState {
@@ -82,6 +83,8 @@ function getConfiguredEnvCredentials(): { email: string; password: string } | nu
 const persistedInitial = readPersistedAuthState();
 let claimedAdmin: { email: string; salt: string; hashHex: string } | null =
   persistedInitial.claimedAdmin ?? null;
+let revokedBeforeMs: number =
+  typeof persistedInitial.revokedBeforeMs === 'number' ? persistedInitial.revokedBeforeMs : 0;
 
 function resolveInitialEphemeralSecret(): string {
   if (persistedInitial.sessionSecret) {
@@ -168,7 +171,7 @@ function verifyAdminCredentials(emailInput: string, passwordInput: string): stri
 function createAdminToken(email: string): string {
   const secret = getSessionSecret();
   const payload = Buffer.from(
-    JSON.stringify({ email, role: 'admin', exp: Date.now() + TOKEN_TTL_MS }),
+    JSON.stringify({ email, role: 'admin', iat: Date.now() }),
     'utf-8'
   ).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
@@ -196,12 +199,12 @@ function verifyAdminToken(token: string): { email: string } | null {
     const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8')) as {
       email?: string;
       role?: string;
-      exp?: number;
+      iat?: number;
     };
-    if (decoded.role !== 'admin' || !decoded.email || typeof decoded.exp !== 'number') {
+    if (decoded.role !== 'admin' || !decoded.email) {
       return null;
     }
-    if (Date.now() > decoded.exp) {
+    if (revokedBeforeMs > 0 && typeof decoded.iat === 'number' && decoded.iat < revokedBeforeMs) {
       return null;
     }
     return { email: decoded.email };
@@ -259,7 +262,7 @@ function setAdminSessionCookie(req: express.Request, res: express.Response, toke
   const parts = [
     `${ADMIN_COOKIE_NAME}=${encodeURIComponent(token)}`,
     'Path=/api',
-    `Max-Age=${Math.floor(TOKEN_TTL_MS / 1000)}`,
+    `Max-Age=${PERSISTENT_COOKIE_MAX_AGE_SECONDS}`,
     'HttpOnly',
     isHttps ? 'SameSite=None' : 'SameSite=Lax',
   ];
@@ -544,6 +547,11 @@ app.post('/api/admin/auth/login', (req, res) => {
 });
 
 app.post('/api/admin/auth/logout', (req, res) => {
+  revokedBeforeMs = Date.now();
+  writePersistedAuthState({
+    ...readPersistedAuthState(),
+    revokedBeforeMs,
+  });
   clearAdminSessionCookie(req, res);
   res.json({ ok: true });
 });

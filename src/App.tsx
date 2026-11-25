@@ -127,6 +127,25 @@ export default function App() {
     setAdminEmail(null);
   }, []);
 
+  const resyncAdminToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const r = await fetch('/api/admin/auth/status', {
+        cache: 'no-store',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      if (!r.ok) return null;
+      const data = await r.json().catch(() => null);
+      if (data?.ok && data.authenticated && data.token) {
+        handleAdminAuthenticated(data.token, data.email || '');
+        return data.token as string;
+      }
+    } catch {
+      // Retain active session state without logging out
+    }
+    return null;
+  }, [handleAdminAuthenticated]);
+
   // Listen for Google Maps Platform quota events (Tier 1 & 2 defense)
   useEffect(() => {
     const handleQuota = () => setQuotaExceeded(true);
@@ -672,7 +691,7 @@ export default function App() {
       if (isOnline) {
         const reqToken = adminTokenRef.current;
         try {
-          const res = await fetch(`/api/shipments/${encodeURIComponent(trackingNo)}/position`, {
+          let res = await fetch(`/api/shipments/${encodeURIComponent(trackingNo)}/position`, {
             method: 'POST',
             cache: 'no-store',
             credentials: 'include',
@@ -684,10 +703,20 @@ export default function App() {
             body: JSON.stringify({ ...coords, deviationThresholdMeters }),
           });
           if (res.status === 401) {
-            if (!reqToken || reqToken === adminTokenRef.current) {
-              handleAdminLogout();
+            const refreshed = await resyncAdminToken();
+            if (refreshed) {
+              res = await fetch(`/api/shipments/${encodeURIComponent(trackingNo)}/position`, {
+                method: 'POST',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Admin-Token': refreshed,
+                },
+                body: JSON.stringify({ ...coords, deviationThresholdMeters }),
+              });
             }
-            return;
           }
           if (res.ok) {
             const data = await res.json();
@@ -793,7 +822,7 @@ export default function App() {
       if (isOnline) {
         const reqToken = adminTokenRef.current;
         try {
-          const res = await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
+          let res = await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
             method: 'PUT',
             cache: 'no-store',
             credentials: 'include',
@@ -805,10 +834,20 @@ export default function App() {
             body: JSON.stringify({ geofences }),
           });
           if (res.status === 401) {
-            if (!reqToken || reqToken === adminTokenRef.current) {
-              handleAdminLogout();
+            const refreshed = await resyncAdminToken();
+            if (refreshed) {
+              res = await fetch(`/api/geofences/${encodeURIComponent(trackingNo)}`, {
+                method: 'PUT',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Admin-Token': refreshed,
+                },
+                body: JSON.stringify({ geofences }),
+              });
             }
-            return;
           }
           setShipments((prev) =>
             prev.map((s) => (s.tracking_no === trackingNo ? { ...s, geofences } : s))
@@ -916,20 +955,30 @@ export default function App() {
         } catch {
           res = null;
         }
-        if (res) {
-          if (res.status === 401 && payload.senderRole === 'admin') {
-            if (!reqToken || reqToken === adminTokenRef.current) {
-              handleAdminLogout();
+          if (res && res.status === 401 && payload.senderRole === 'admin') {
+            const refreshed = await resyncAdminToken();
+            if (refreshed) {
+              res = await fetch(`/api/tickets/${encodeURIComponent(ticketIdOrCode)}/replies`, {
+                method: 'POST',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Admin-Token': refreshed,
+                },
+                body: JSON.stringify(payload),
+              });
             }
-            return { ok: false, error: 'Admin session expired. Please sign in again.' };
           }
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && data.ticket) {
-            upsertTicket(data.ticket as SupportTicket);
-            return { ok: true, ticket: data.ticket as SupportTicket };
+          if (res) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ticket) {
+              upsertTicket(data.ticket as SupportTicket);
+              return { ok: true, ticket: data.ticket as SupportTicket };
+            }
+            return { ok: false, error: data.error || 'Could not deliver reply.' };
           }
-          return { ok: false, error: data.error || 'Could not deliver reply.' };
-        }
       }
 
       const now = new Date().toISOString();
@@ -1007,7 +1056,7 @@ export default function App() {
       if (isOnline) {
         const reqToken = adminTokenRef.current;
         try {
-          const res = await fetch(`/api/admin/tickets/${encodeURIComponent(ticketId)}`, {
+          let res = await fetch(`/api/admin/tickets/${encodeURIComponent(ticketId)}`, {
             method: 'PATCH',
             cache: 'no-store',
             credentials: 'include',
@@ -1019,10 +1068,20 @@ export default function App() {
             body: JSON.stringify({ status }),
           });
           if (res.status === 401) {
-            if (!reqToken || reqToken === adminTokenRef.current) {
-              handleAdminLogout();
+            const refreshed = await resyncAdminToken();
+            if (refreshed) {
+              res = await fetch(`/api/admin/tickets/${encodeURIComponent(ticketId)}`, {
+                method: 'PATCH',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Admin-Token': refreshed,
+                },
+                body: JSON.stringify({ status }),
+              });
             }
-            return { ok: false };
           }
           if (res.ok) {
             const data = await res.json();
@@ -1051,7 +1110,7 @@ export default function App() {
       if (isOnline) {
         const reqToken = adminTokenRef.current;
         try {
-          const res = await fetch('/api/admin/settings', {
+          let res = await fetch('/api/admin/settings', {
             method: 'PUT',
             cache: 'no-store',
             credentials: 'include',
@@ -1063,10 +1122,20 @@ export default function App() {
             body: JSON.stringify(nextSettings),
           });
           if (res.status === 401) {
-            if (!reqToken || reqToken === adminTokenRef.current) {
-              handleAdminLogout();
+            const refreshed = await resyncAdminToken();
+            if (refreshed) {
+              res = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Admin-Token': refreshed,
+                },
+                body: JSON.stringify(nextSettings),
+              });
             }
-            return { ok: false, error: 'Admin session expired. Please sign in again.' };
           }
           const data = await res.json();
           if (res.ok && data.settings) {
