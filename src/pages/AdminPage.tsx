@@ -430,7 +430,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setAuthSubmitting(true);
     try {
       const endpoint = needsSetup ? '/api/admin/auth/setup' : '/api/admin/auth/login';
-      const res = await fetch(endpoint, {
+      let res = await fetch(endpoint, {
         method: 'POST',
         cache: 'no-store',
         credentials: 'include',
@@ -443,7 +443,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           password: loginPassword,
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data = await res.json().catch(() => ({}));
       if (res.status === 409 && data.needsSetup) {
         setNeedsSetup(true);
         setAuthError(data.error || 'Initial admin setup required before signing in.');
@@ -451,8 +451,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       }
       if (res.status === 409 && needsSetup) {
         setNeedsSetup(false);
-        setAuthError('Admin account is already configured. Please sign in.');
-        return;
+        res = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          cache: 'no-store',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            email: loginEmail.trim(),
+            password: loginPassword,
+          }),
+        });
+        data = await res.json().catch(() => ({}));
       }
       if (!res.ok || !data.ok || !data.token) {
         setAuthError(data.error || 'Invalid email or password.');

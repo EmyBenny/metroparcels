@@ -23,21 +23,34 @@ console.error = (...args: unknown[]) => {
   }
 };
 
-// Register PWA Service Worker only in production; unregister stale dev service workers
+// Register PWA Service Worker only in production; purge stale dev service workers & caches
 if (import.meta.env.PROD) {
-  registerSW({
+  const updateSW = registerSW({
     immediate: true,
+    onNeedRefresh() {
+      updateSW(true);
+    },
     onOfflineReady() {
       window.dispatchEvent(new CustomEvent('metro-parcel-offline-ready'));
     },
   });
-} else if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
-    .catch(() => {
-      // Ignore unregister errors
-    });
+} else {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .catch(() => {
+        // Ignore unregister errors
+      });
+  }
+  if ('caches' in window) {
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .catch(() => {
+        // Ignore cache cleanup errors
+      });
+  }
 }
 
 createRoot(document.getElementById('root')!).render(
